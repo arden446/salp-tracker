@@ -1442,14 +1442,14 @@
                     { ticker: 'EQT', name: 'EQT Corp', shares: 1217386, value: 66262320, type: 'stock' },
                     { ticker: 'MU', name: 'Micron Technology Inc', shares: 300000, value: 50196000, type: 'put' },
                     { ticker: 'SEI', name: 'Solaris Energy Infras Inc', shares: 1150300, value: 45977491, type: 'stock' },
-                    { ticker: 'BE', name: 'Bloom Energy Corp', shares: 3048002, value: 43890344, type: 'stock' },
+                    // BE (Bloom Energy) removed - CUSIP 093712AH0 is convertible notes, not stock
                     { ticker: 'TSEM', name: 'Tower Semiconductor Ltd', shares: 470600, value: 34024380, type: 'stock' },
                     { ticker: 'HUT', name: 'Hut 8 Corp', shares: 599000, value: 20851190, type: 'stock' },
                     { ticker: 'WDC', name: 'Western Digital Corp', shares: 152821, value: 18347689, type: 'stock' },
                     { ticker: 'COHR', name: 'Coherent Corp', shares: 154400, value: 16631968, type: 'stock' },
                     { ticker: 'BTDR', name: 'Bitdeer Technologies Group', shares: 929600, value: 15886864, type: 'stock' },
                     { ticker: 'SNDK', name: 'SanDisk Corp', shares: 115000, value: 12903000, type: 'stock' },
-                    { ticker: 'BE', name: 'Bloom Energy Corp (Call)', shares: 145800, value: 12330306, type: 'call' },
+                    // BE call removed - related to convertible notes, not equity options
                     { ticker: 'STX', name: 'Seagate Technology', shares: 48567, value: 11464726, type: 'stock' }
                 ]
             }
@@ -1773,6 +1773,15 @@
 
                     // Determine type (stock, call, or put)
                     const titleUpper = titleOfClass.toUpperCase();
+
+                    // Skip non-equity securities (convertible notes, bonds, etc.)
+                    if (titleUpper.includes('NOTE') || titleUpper.includes('BOND') ||
+                        titleUpper.includes('CONVERT') || titleUpper.includes('DEBT') ||
+                        titleUpper.includes('%')) {
+                        console.log(`Skipping non-equity security: ${nameOfIssuer} - ${titleOfClass}`);
+                        return;
+                    }
+
                     let type = 'stock';
                     if (titleUpper.includes('CALL')) type = 'call';
                     else if (titleUpper.includes('PUT')) type = 'put';
