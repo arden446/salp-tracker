@@ -1775,11 +1775,24 @@
                     const titleUpper = titleOfClass.toUpperCase();
 
                     // Skip non-equity securities (convertible notes, bonds, etc.)
+                    // Check 1: Title contains bond/note keywords
                     if (titleUpper.includes('NOTE') || titleUpper.includes('BOND') ||
                         titleUpper.includes('CONVERT') || titleUpper.includes('DEBT') ||
-                        titleUpper.includes('%')) {
-                        console.log(`Skipping non-equity security: ${nameOfIssuer} - ${titleOfClass}`);
+                        titleUpper.includes('%') || titleUpper.includes('SENIOR') ||
+                        titleUpper.includes('SUBORDINAT') || titleUpper.includes('DEBENTURE')) {
+                        console.log(`Skipping non-equity (title): ${nameOfIssuer} - ${titleOfClass}`);
                         return;
+                    }
+
+                    // Check 2: CUSIP format - bonds typically have letters in positions 7-8
+                    // Stock CUSIPs: XXXXXX10Y, XXXXXX20Y (digits in pos 7-8)
+                    // Bond CUSIPs: XXXXXXAHY, XXXXXXAB0 (letters in pos 7-8)
+                    if (cusip && cusip.length >= 8) {
+                        const issueType = cusip.substring(6, 8);
+                        if (/[A-Za-z]/.test(issueType)) {
+                            console.log(`Skipping non-equity (CUSIP ${cusip}): ${nameOfIssuer} - ${titleOfClass}`);
+                            return;
+                        }
                     }
 
                     let type = 'stock';
