@@ -1,0 +1,3798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Situational Awareness LP - Portfolio Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        :root {
+            --cream: #faf8f5;
+            --cream-dark: #f0ebe3;
+            --charcoal: #1a1a1a;
+            --charcoal-light: #4a4a4a;
+            --accent: #2c5282;
+            --accent-light: #4a7ab8;
+            --green: #276749;
+            --red: #9b2c2c;
+            --border: #e2ddd5;
+            --shadow: rgba(26, 26, 26, 0.08);
+            --warning-bg: #fffbeb;
+            --warning-border: #fcd34d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+        header {
+            padding: 3rem 0 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 2rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        header .subtitle {
+            font-size: 0.9rem;
+            color: var(--charcoal-light);
+        }
+
+        section {
+            padding: 3rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        section:last-of-type { border-bottom: none; }
+
+        .section-title {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            color: var(--charcoal-light);
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 1px 3px var(--shadow);
+            position: relative;
+            height: 400px;
+        }
+
+        .chart-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--charcoal-light);
+            max-width: 400px;
+        }
+
+        .chart-placeholder h3 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-placeholder p {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--charcoal-light);
+            display: none;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px var(--shadow);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--charcoal-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1.75rem;
+        }
+
+        .metric-value.positive { color: var(--green); }
+        .metric-value.negative { color: var(--red); }
+        .metric-value.pending { color: var(--charcoal-light); font-size: 1rem; }
+
+        .metric-card.expandable {
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .metric-card.expandable:hover {
+            border-color: var(--accent-light);
+        }
+
+        .metric-card.expandable .expand-hint {
+            font-size: 0.7rem;
+            color: var(--charcoal-light);
+            margin-top: 0.25rem;
+        }
+
+        .metric-card.expanded {
+            grid-column: 1 / -1;
+        }
+
+        .metric-breakdown {
+            display: none;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .metric-card.expanded .metric-breakdown {
+            display: block;
+        }
+
+        .metric-card.expanded .expand-hint {
+            display: none;
+        }
+
+        .metric-subtitle {
+            font-size: 0.8rem;
+            color: var(--charcoal-light);
+            margin-top: 0.25rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.6rem 1.2rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: var(--charcoal-light);
+        }
+
+        .tab:hover {
+            border-color: var(--accent-light);
+            color: var(--charcoal);
+        }
+
+        .tab.active {
+            background: var(--charcoal);
+            color: white;
+            border-color: var(--charcoal);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px var(--shadow);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            padding: 1rem 1.5rem;
+            background: var(--cream-dark);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--charcoal-light);
+            font-weight: 600;
+            background: var(--cream);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--cream); }
+        td { font-size: 0.85rem; }
+
+        .ticker { font-weight: 600; color: var(--accent); }
+        .number { font-variant-numeric: tabular-nums; }
+
+        .option-input {
+            width: 80px;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .option-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .option-input.missing {
+            border-color: var(--warning-border);
+            background: var(--warning-bg);
+        }
+
+        .calculated-value {
+            font-size: 0.8rem;
+            color: var(--charcoal-light);
+        }
+
+        .warning-box {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .warning-box strong { color: #92400e; }
+
+        .info-box {
+            background: #f0f4f8;
+            border: 1px solid #d0dae5;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: var(--accent-light); }
+        .btn:disabled {
+            background: var(--charcoal-light);
+            cursor: not-allowed;
+        }
+
+        .calculate-controls {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .mode-hint {
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            margin-top: 0.75rem;
+            font-style: italic;
+        }
+
+        .methodology {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 1px 3px var(--shadow);
+        }
+
+        .methodology h3 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .methodology p, .methodology li {
+            color: var(--charcoal-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            max-width: 70ch;
+        }
+
+        .methodology ul { margin-left: 1.5rem; }
+
+        footer {
+            padding: 2rem 0;
+            text-align: center;
+            color: var(--charcoal-light);
+            font-size: 0.8rem;
+        }
+
+        footer a { color: var(--accent); text-decoration: none; }
+
+        .summary-row {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .summary-item { font-size: 0.9rem; }
+        .summary-item strong { font-weight: 600; }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--red);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .iv-loading {
+            font-size: 0.75rem;
+            color: var(--charcoal-light);
+            font-style: italic;
+        }
+
+        .chart-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .portfolio-mode-tabs {
+            display: flex;
+            gap: 0;
+        }
+
+        .mode-tab {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--charcoal-light);
+            transition: all 0.15s ease;
+        }
+
+        .mode-tab:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .mode-tab:last-child {
+            border-radius: 0 4px 4px 0;
+            border-left: none;
+        }
+
+        .mode-tab:hover {
+            color: var(--charcoal);
+        }
+
+        .mode-tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .time-range-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .range-tab {
+            padding: 0.4rem 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--charcoal-light);
+            transition: all 0.15s ease;
+        }
+
+        .range-tab:hover {
+            border-color: var(--accent-light);
+            color: var(--charcoal);
+        }
+
+        .range-tab.active {
+            background: var(--charcoal);
+            color: white;
+            border-color: var(--charcoal);
+        }
+
+        .custom-range-picker {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .date-input {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .date-separator {
+            color: var(--charcoal-light);
+            font-size: 0.85rem;
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: var(--accent-light);
+        }
+
+        .constituents-section {
+            margin-top: 2rem;
+        }
+
+        .constituents-title {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 400;
+            margin-bottom: 1rem;
+            color: var(--charcoal);
+        }
+
+        .constituents-title span {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+        }
+
+        .constituents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .constituent-card {
+            background: white;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 1px 3px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .constituent-ticker {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--accent);
+        }
+
+        .constituent-type {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--charcoal-light);
+        }
+
+        .constituent-return {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .constituent-return.positive { color: var(--green); }
+        .constituent-return.negative { color: var(--red); }
+
+        .constituent-contrib {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .constituent-contrib.positive { color: var(--green); }
+        .constituent-contrib.negative { color: var(--red); }
+
+        .constituent-stock-return {
+            font-size: 0.75rem;
+            color: var(--charcoal-light);
+        }
+
+        .constituent-card {
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .constituent-card:hover {
+            border-color: var(--accent-light);
+        }
+
+        .constituent-card.expanded {
+            grid-column: 1 / -1;
+        }
+
+        .constituent-breakdown {
+            display: none;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .constituent-card.expanded .constituent-breakdown {
+            display: block;
+        }
+
+        .constituent-quarter-row {
+            padding: 0.25rem 0;
+            line-height: 1.4;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .constituent-quarter-row:last-child {
+            border-bottom: none;
+        }
+
+        .constituent-quarter-label {
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .constituent-quarter-calc {
+            color: var(--charcoal-light);
+        }
+
+        .constituent-quarter-result {
+            font-weight: 600;
+        }
+
+        .constituent-quarter-result.positive { color: var(--green); }
+        .constituent-quarter-result.negative { color: var(--red); }
+
+        .weights-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px var(--shadow);
+            margin-top: 1.5rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .weights-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .weights-header h3 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 400;
+            margin: 0;
+        }
+
+        .weights-header h3 span {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            margin-left: 0.5rem;
+        }
+
+        #weights-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--charcoal-light);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        #weights-close:hover {
+            color: var(--charcoal);
+        }
+
+        .weights-summary {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+        }
+
+        .weights-summary span {
+            font-weight: 500;
+        }
+
+        .weights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .weight-card {
+            background: var(--cream);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            border-left: 3px solid var(--accent);
+        }
+
+        .weight-card.call {
+            border-left-color: var(--green);
+        }
+
+        .weight-card.put {
+            border-left-color: var(--red);
+        }
+
+        .weight-card-ticker {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .weight-card-type {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            background: var(--charcoal-light);
+            color: white;
+        }
+
+        .weight-card-type.call {
+            background: var(--green);
+        }
+
+        .weight-card-type.put {
+            background: var(--red);
+        }
+
+        .weight-card-pct {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-top: 0.25rem;
+        }
+
+        .weight-card-value {
+            font-size: 0.75rem;
+            color: var(--charcoal-light);
+        }
+
+        .big-moves-list {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .big-moves-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--charcoal-light);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .big-move-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .big-move-item:last-child { border-bottom: none; }
+        .big-move-item:hover { background: var(--cream-dark); margin: 0 -0.5rem; padding: 0.5rem; }
+
+        .move-indicator {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .move-indicator.positive { background: var(--green); }
+        .move-indicator.negative { background: var(--red); }
+
+        .move-details {
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .move-date {
+            font-size: 0.75rem;
+            color: var(--charcoal-light);
+        }
+
+        .move-breakdown {
+            display: none;
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: var(--cream-dark);
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .big-move-item.expanded .move-breakdown {
+            display: block;
+        }
+
+        .big-move-item.expanded {
+            background: var(--cream-dark);
+            margin: 0 -0.5rem;
+            padding: 0.5rem;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .breakdown-row:last-child { border-bottom: none; }
+
+        .breakdown-ticker {
+            font-weight: 600;
+            color: var(--accent);
+            width: 50px;
+        }
+
+        .breakdown-weight {
+            color: var(--charcoal-light);
+            width: 60px;
+            text-align: right;
+        }
+
+        .breakdown-return {
+            width: 70px;
+            text-align: right;
+        }
+
+        .breakdown-contrib {
+            width: 80px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .breakdown-contrib.positive { color: var(--green); }
+        .breakdown-contrib.negative { color: var(--red); }
+
+        .breakdown-header {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--charcoal-light);
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .expand-hint {
+            font-size: 0.7rem;
+            color: var(--charcoal-light);
+            margin-left: auto;
+        }
+
+        .data-update-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 1px 3px var(--shadow);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .data-update-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .data-update-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .data-update-status {
+            font-size: 0.8rem;
+            color: var(--charcoal-light);
+        }
+
+        .data-update-status.success {
+            color: var(--green);
+        }
+
+        .data-update-status.error {
+            color: var(--red);
+        }
+
+        .data-update-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: white;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-secondary:disabled {
+            border-color: var(--charcoal-light);
+            color: var(--charcoal-light);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary:disabled:hover {
+            background: white;
+            color: var(--charcoal-light);
+        }
+
+        .update-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 1rem; }
+            header h1 { font-size: 1.5rem; }
+            .chart-container { height: 300px; padding: 1rem; }
+            th, td { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .option-input { width: 65px; font-size: 0.8rem; }
+            .constituents-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Situational Awareness LP</h1>
+            <p class="subtitle">Portfolio Performance Tracker &middot; CIK 0002045724</p>
+        </header>
+
+        <section id="data-section">
+            <h2 class="section-title">13F Data</h2>
+            <div class="data-update-section">
+                <div class="data-update-info">
+                    <div class="data-update-title">SEC EDGAR Holdings Data</div>
+                    <div class="data-update-status" id="data-update-status">Last checked: Never</div>
+                </div>
+                <div class="data-update-controls">
+                    <div class="update-spinner" id="update-spinner"></div>
+                    <button class="btn-secondary" id="check-13f-btn">Check for Updates</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="options-config-section">
+            <h2 class="section-title">Options Configuration</h2>
+            <div class="warning-box" id="config-warning">
+                <strong>Action Required:</strong> Configure the options positions below before viewing performance.
+                13F filings report notional value for options, not the premium paid. Enter strike and expiry to calculate actual position values.
+            </div>
+            <div class="info-box">
+                For each option, enter the estimated strike price and expiry date. IV is fetched live from Yahoo Finance
+                (falls back to estimates if unavailable). The premium is calculated using Black-Scholes.
+            </div>
+            <div class="table-container">
+                <div class="table-header">All Options Positions (Across All Quarters)</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Quarter</th>
+                            <th>Ticker</th>
+                            <th>Type</th>
+                            <th>Shares</th>
+                            <th>Notional</th>
+                            <th>Strike $</th>
+                            <th>Expiry</th>
+                            <th>IV %</th>
+                            <th>Calc. Premium</th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-options-config"></tbody>
+                </table>
+            </div>
+            <div class="calculate-controls">
+                <div class="portfolio-mode-tabs">
+                    <button class="mode-tab active" data-mode="full">Full Portfolio</button>
+                    <button class="mode-tab" data-mode="equities">Equities Only</button>
+                </div>
+                <button class="btn" id="calculate-btn" disabled>Calculate Performance</button>
+            </div>
+            <p class="mode-hint" id="mode-hint"></p>
+        </section>
+
+        <section id="performance-section" style="display: none;">
+            <h2 class="section-title">Performance</h2>
+            <div class="chart-controls">
+                <div class="time-range-tabs">
+                    <button class="range-tab" data-range="1D">1D</button>
+                    <button class="range-tab" data-range="1W">1W</button>
+                    <button class="range-tab" data-range="1M">1M</button>
+                    <button class="range-tab" data-range="3M">3M</button>
+                    <button class="range-tab" data-range="6M">6M</button>
+                    <button class="range-tab active" data-range="ALL">All</button>
+                    <button class="range-tab" data-range="CUSTOM">Custom</button>
+                </div>
+                <div class="custom-range-picker" id="custom-range-picker" style="display: none;">
+                    <input type="date" id="custom-start" class="date-input">
+                    <span class="date-separator">to</span>
+                    <input type="date" id="custom-end" class="date-input">
+                    <button class="btn-small" id="apply-custom-range">Apply</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-loading" id="chart-loading">
+                    <div class="spinner"></div>
+                    <p>Calculating performance...</p>
+                </div>
+                <canvas id="performance-chart"></canvas>
+            </div>
+            <div class="weights-panel" id="weights-panel" style="display: none;">
+                <div class="weights-header">
+                    <h3>Portfolio Weights <span id="weights-date"></span></h3>
+                    <button id="weights-close">&times;</button>
+                </div>
+                <div class="weights-summary">
+                    <span>Quarter: <span id="weights-quarter"></span></span>
+                    <span>Total Value: <span id="weights-total"></span></span>
+                </div>
+                <div class="weights-grid" id="weights-grid"></div>
+            </div>
+            <div class="constituents-section" id="constituents-section">
+                <h3 class="constituents-title">Constituent Performance <span id="range-label">(All Time)</span></h3>
+                <div class="constituents-grid" id="constituents-grid"></div>
+            </div>
+            <div class="big-moves-list" id="big-moves-list" style="display: none;">
+                <div class="big-moves-title">Significant Moves (15%+ over 2-4 days)</div>
+                <div id="big-moves-container"></div>
+            </div>
+        </section>
+        <div class="move-tooltip" id="move-tooltip"></div>
+
+        <section id="metrics-section" style="display: none;">
+            <h2 class="section-title">Key Metrics</h2>
+            <div id="error-container"></div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Return</div>
+                    <div class="metric-value" id="total-return">—</div>
+                    <div class="metric-subtitle">Since Q4 2024</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">2026 YTD Return</div>
+                    <div class="metric-value" id="ytd-return">—</div>
+                    <div class="metric-subtitle">Year to date</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Sharpe Ratio</div>
+                    <div class="metric-value" id="sharpe-ratio">—</div>
+                    <div class="metric-subtitle">Annualized</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Max Drawdown</div>
+                    <div class="metric-value" id="max-drawdown">—</div>
+                    <div class="metric-subtitle">Peak to trough</div>
+                </div>
+            </div>
+            <div class="metrics-grid quarterly-metrics" id="quarterly-metrics" style="margin-top: 1rem;">
+            </div>
+        </section>
+
+        <section id="holdings-section">
+            <h2 class="section-title">Quarterly Holdings</h2>
+            <div class="tabs" id="quarter-tabs">
+                <button class="tab" data-quarter="Q4-2024">Q4 2024</button>
+                <button class="tab" data-quarter="Q1-2025">Q1 2025</button>
+                <button class="tab" data-quarter="Q2-2025">Q2 2025</button>
+                <button class="tab active" data-quarter="Q3-2025">Q3 2025</button>
+            </div>
+
+            <div class="summary-row">
+                <div class="summary-item"><strong>Report Date:</strong> <span id="report-date">-</span></div>
+                <div class="summary-item"><strong>Portfolio Value:</strong> <span id="total-value">-</span></div>
+                <div class="summary-item"><strong>Positions:</strong> <span id="holdings-count">-</span></div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">Stock Positions</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Company</th>
+                            <th>Shares</th>
+                            <th>Value</th>
+                            <th>Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-holdings"></tbody>
+                </table>
+            </div>
+
+            <div class="table-container" id="options-container" style="display: none;">
+                <div class="table-header">Options Positions</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Type</th>
+                            <th>Notional</th>
+                            <th>Strike</th>
+                            <th>Expiry</th>
+                            <th>IV</th>
+                            <th>Est. Premium</th>
+                            <th>Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody id="options-holdings"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="methodology-section">
+            <h2 class="section-title">Methodology</h2>
+            <div class="methodology">
+                <h3>Performance Calculation</h3>
+                <ul>
+                    <li><strong>Stocks:</strong> Weighted by reported market value. Daily returns from price changes.</li>
+                    <li><strong>Options:</strong> Premium calculated via Black-Scholes using your strike/expiry/IV inputs. Daily option prices simulated using BS with time decay.</li>
+                    <li><strong>Weighting:</strong> Stocks weighted by value; options weighted by calculated premium (not notional).</li>
+                    <li><strong>AUM Changes:</strong> New capital doesn't affect returns—each quarter uses percentage weights.</li>
+                </ul>
+                <p><strong>Limitations:</strong> 13Fs exclude shorts, non-US holdings, small positions. Option parameters are estimates. Actual performance will differ.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>Data from <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0002045724&type=13F" target="_blank">SEC EDGAR</a> and Yahoo Finance. Not financial advice.</p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================
+        // 13F HOLDINGS DATA
+        // ============================================
+        const HOLDINGS_DATA = {
+            'Q4-2024': {
+                reportDate: '2024-12-31',
+                filedDate: '2025-02-11',
+                periodStart: '2024-10-01',
+                periodEnd: '2024-12-31',
+                holdings: [
+                    { ticker: 'MRVL', name: 'Marvell Technology Inc', shares: 785896, value: 86802213, type: 'stock' },
+                    { ticker: 'VST', name: 'Vistra Corp', shares: 428397, value: 59063094, type: 'stock' },
+                    { ticker: 'VRT', name: 'Vertiv Holdings Co', shares: 455146, value: 51709137, type: 'stock' },
+                    { ticker: 'TLN', name: 'Talen Energy Corp', shares: 138878, value: 27979751, type: 'stock' },
+                    { ticker: 'CEG', name: 'Constellation Energy Corp', shares: 96400, value: 21565644, type: 'stock' },
+                    { ticker: 'MOD', name: 'Modine Mfg Co', shares: 66367, value: 7693926, type: 'stock' }
+                ]
+            },
+            'Q1-2025': {
+                reportDate: '2025-03-31',
+                filedDate: '2025-05-14',
+                periodStart: '2025-01-01',
+                periodEnd: '2025-03-31',
+                holdings: [
+                    { ticker: 'INTC', name: 'Intel Corp', shares: 20237400, value: 459591354, type: 'call' },
+                    { ticker: 'AVGO', name: 'Broadcom Inc', shares: 700000, value: 117201000, type: 'stock' },
+                    { ticker: 'ONTO', name: 'Onto Innovation Inc', shares: 586717, value: 71192241, type: 'stock' },
+                    { ticker: 'VST', name: 'Vistra Corp', shares: 525846, value: 61755354, type: 'stock' },
+                    { ticker: 'MOD', name: 'Modine Mfg Co', shares: 716824, value: 55016242, type: 'stock' },
+                    { ticker: 'EQT', name: 'EQT Corp', shares: 989398, value: 52863535, type: 'stock' },
+                    { ticker: 'CRWV', name: 'CoreWeave Inc', shares: 1225000, value: 45423000, type: 'stock' },
+                    { ticker: 'CEG', name: 'Constellation Energy Corp', shares: 183400, value: 36978942, type: 'stock' },
+                    { ticker: 'CORZ', name: 'Core Scientific Inc', shares: 4521578, value: 32736225, type: 'stock' },
+                    { ticker: 'TLN', name: 'Talen Energy Corp', shares: 148395, value: 29630030, type: 'stock' },
+                    { ticker: 'APLD', name: 'Applied Digital Corp', shares: 4035600, value: 22680072, type: 'stock' },
+                    { ticker: 'IREN', name: 'IREN Limited', shares: 3366130, value: 20499732, type: 'stock' }
+                ]
+            },
+            'Q2-2025': {
+                reportDate: '2025-06-30',
+                filedDate: '2025-08-14',
+                periodStart: '2025-04-01',
+                periodEnd: '2025-06-30',
+                holdings: [
+                    { ticker: 'SMH', name: 'VanEck Semiconductor ETF', shares: 2044100, value: 570058608, type: 'put' },
+                    { ticker: 'INTC', name: 'Intel Corp', shares: 20237400, value: 453317760, type: 'call' },
+                    { ticker: 'AVGO', name: 'Broadcom Inc', shares: 1191606, value: 328466194, type: 'stock' },
+                    { ticker: 'VST', name: 'Vistra Corp', shares: 1274178, value: 246948438, type: 'stock' },
+                    { ticker: 'CORZ', name: 'Core Scientific Inc', shares: 7994038, value: 136458229, type: 'stock' },
+                    { ticker: 'EQT', name: 'EQT Corp', shares: 2145345, value: 125116520, type: 'stock' },
+                    { ticker: 'CEG', name: 'Constellation Energy Corp', shares: 319200, value: 103024992, type: 'stock' },
+                    { ticker: 'IREN', name: 'IREN Limited', shares: 6400384, value: 93253595, type: 'stock' },
+                    { ticker: 'APLD', name: 'Applied Digital Corp', shares: 6591800, value: 66379426, type: 'stock' }
+                ]
+            },
+            'Q3-2025': {
+                reportDate: '2025-09-30',
+                filedDate: '2025-11-14',
+                periodStart: '2025-07-01',
+                periodEnd: '2025-09-30',
+                holdings: [
+                    { ticker: 'INTC', name: 'Intel Corp', shares: 20237400, value: 678964770, type: 'call' },
+                    { ticker: 'CRWV', name: 'CoreWeave Inc', shares: 4115456, value: 563200154, type: 'stock' },
+                    { ticker: 'CORZ', name: 'Core Scientific Inc', shares: 20180534, value: 362038780, type: 'stock' },
+                    { ticker: 'IREN', name: 'IREN Limited', shares: 7220421, value: 338854358, type: 'stock' },
+                    { ticker: 'CRWV', name: 'CoreWeave Inc (Call)', shares: 2314500, value: 316739325, type: 'call' },
+                    { ticker: 'NVDA', name: 'NVIDIA Corp', shares: 1600000, value: 298528000, type: 'put' },
+                    { ticker: 'VST', name: 'Vistra Corp', shares: 1287910, value: 252327327, type: 'stock' },
+                    { ticker: 'SMH', name: 'VanEck Semiconductor ETF', shares: 600000, value: 195816000, type: 'put' },
+                    { ticker: 'CRWV', name: 'CoreWeave Inc (Put)', shares: 1400000, value: 191590000, type: 'put' },
+                    { ticker: 'APLD', name: 'Applied Digital Corp', shares: 6064155, value: 139111716, type: 'stock' },
+                    { ticker: 'GLXY', name: 'Galaxy Digital Inc', shares: 2737500, value: 92554875, type: 'stock' },
+                    { ticker: 'AVGO', name: 'Broadcom Inc', shares: 230000, value: 75879300, type: 'put' },
+                    { ticker: 'TSM', name: 'Taiwan Semiconductor', shares: 270000, value: 75408300, type: 'put' },
+                    { ticker: 'CIFR', name: 'Cipher Mining Inc', shares: 5740493, value: 72272807, type: 'stock' },
+                    { ticker: 'RIOT', name: 'Riot Platforms Inc', shares: 3592699, value: 68369062, type: 'stock' },
+                    { ticker: 'LITE', name: 'Lumentum Holdings Inc', shares: 417600, value: 67947696, type: 'stock' },
+                    { ticker: 'EQT', name: 'EQT Corp', shares: 1217386, value: 66262320, type: 'stock' },
+                    { ticker: 'MU', name: 'Micron Technology Inc', shares: 300000, value: 50196000, type: 'put' },
+                    { ticker: 'SEI', name: 'Solaris Energy Infras Inc', shares: 1150300, value: 45977491, type: 'stock' },
+                    { ticker: 'BE', name: 'Bloom Energy Corp', shares: 3048002, value: 43890344, type: 'stock' },
+                    { ticker: 'TSEM', name: 'Tower Semiconductor Ltd', shares: 470600, value: 34024380, type: 'stock' },
+                    { ticker: 'HUT', name: 'Hut 8 Corp', shares: 599000, value: 20851190, type: 'stock' },
+                    { ticker: 'WDC', name: 'Western Digital Corp', shares: 152821, value: 18347689, type: 'stock' },
+                    { ticker: 'COHR', name: 'Coherent Corp', shares: 154400, value: 16631968, type: 'stock' },
+                    { ticker: 'BTDR', name: 'Bitdeer Technologies Group', shares: 929600, value: 15886864, type: 'stock' },
+                    { ticker: 'SNDK', name: 'SanDisk Corp', shares: 115000, value: 12903000, type: 'stock' },
+                    { ticker: 'BE', name: 'Bloom Energy Corp (Call)', shares: 145800, value: 12330306, type: 'call' },
+                    { ticker: 'STX', name: 'Seagate Technology', shares: 48567, value: 11464726, type: 'stock' }
+                ]
+            }
+        };
+
+        const QUARTER_ORDER = ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025'];
+
+        // ============================================
+        // 13F DATA FETCHING
+        // ============================================
+        const SEC_CIK = '0002045724';
+
+        // CUSIP to ticker mapping (built from known holdings + common securities)
+        const CUSIP_TO_TICKER = {
+            '573874104': 'MRVL',
+            '92840M102': 'VST',
+            '92535P101': 'VRT',
+            '87425E103': 'TLN',
+            '21037T109': 'CEG',
+            '607828100': 'MOD',
+            '458140100': 'INTC',
+            '11135F101': 'AVGO',
+            '682529107': 'ONTO',
+            '26856L103': 'EQT',
+            '21872J107': 'CRWV',
+            '21871X109': 'CORZ',
+            'G4701H208': 'IREN',
+            '03831W108': 'APLD',
+            '78464A714': 'SMH',
+            '67066G104': 'NVDA',
+            '874039100': 'TSM',
+            '595112103': 'MU',
+            '093671105': 'BE',
+            '36254L100': 'GLXY',
+            '87612E106': 'TSEM',
+            '17469E108': 'CIFR',
+            '767292105': 'RIOT',
+            '55024U109': 'LITE',
+            '83417Q105': 'SEI',
+            '44267D107': 'HUT',
+            '958102105': 'WDC',
+            '19247G107': 'COHR',
+            'G1241V102': 'BTDR',
+            '80004C209': 'SNDK',
+            '81211L102': 'STX',
+        };
+
+        // Try to identify ticker from issuer name
+        function guessTickerFromName(name) {
+            const nameUpper = name.toUpperCase();
+            const mappings = {
+                'MARVELL': 'MRVL',
+                'VISTRA': 'VST',
+                'VERTIV': 'VRT',
+                'TALEN': 'TLN',
+                'CONSTELLATION ENERGY': 'CEG',
+                'MODINE': 'MOD',
+                'INTEL': 'INTC',
+                'BROADCOM': 'AVGO',
+                'ONTO INNOVATION': 'ONTO',
+                'EQT CORP': 'EQT',
+                'COREWEAVE': 'CRWV',
+                'CORE SCIENTIFIC': 'CORZ',
+                'IREN': 'IREN',
+                'APPLIED DIGITAL': 'APLD',
+                'VANECK SEMICONDUCTOR': 'SMH',
+                'NVIDIA': 'NVDA',
+                'TAIWAN SEMICONDUCTOR': 'TSM',
+                'MICRON': 'MU',
+                'BLOOM ENERGY': 'BE',
+                'GALAXY DIGITAL': 'GLXY',
+                'TOWER SEMICONDUCTOR': 'TSEM',
+                'CIPHER MINING': 'CIFR',
+                'RIOT': 'RIOT',
+                'LUMENTUM': 'LITE',
+                'SOLARIS': 'SEI',
+                'HUT 8': 'HUT',
+                'WESTERN DIGITAL': 'WDC',
+                'COHERENT': 'COHR',
+                'BITDEER': 'BTDR',
+                'SANDISK': 'SNDK',
+                'SEAGATE': 'STX',
+            };
+            for (const [key, ticker] of Object.entries(mappings)) {
+                if (nameUpper.includes(key)) return ticker;
+            }
+            return null;
+        }
+
+        async function fetch13FData() {
+            const statusEl = document.getElementById('data-update-status');
+            const spinner = document.getElementById('update-spinner');
+            const btn = document.getElementById('check-13f-btn');
+
+            statusEl.textContent = 'Fetching filing list from SEC...';
+            statusEl.className = 'data-update-status';
+            spinner.style.display = 'block';
+            btn.disabled = true;
+
+            try {
+                // Fetch submissions list from SEC EDGAR
+                const submissionsUrl = `https://data.sec.gov/submissions/CIK${SEC_CIK}.json`;
+                const proxies = [
+                    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                ];
+
+                let submissions = null;
+                for (const makeProxy of proxies) {
+                    try {
+                        const res = await fetch(makeProxy(submissionsUrl));
+                        if (res.ok) {
+                            submissions = await res.json();
+                            break;
+                        }
+                    } catch (e) { console.warn('Proxy failed:', e); }
+                }
+
+                if (!submissions) {
+                    throw new Error('Could not fetch SEC submissions');
+                }
+
+                // Find all 13F-HR filings
+                const filings = submissions.filings?.recent || submissions;
+                const forms = filings.form || [];
+                const accessions = filings.accessionNumber || [];
+                const reportDates = filings.reportDate || [];
+                const filedDates = filings.filingDate || [];
+                const primaryDocs = filings.primaryDocument || [];
+
+                const thirteenFFilings = [];
+                for (let i = 0; i < forms.length; i++) {
+                    if (forms[i] === '13F-HR' || forms[i] === '13F-HR/A') {
+                        thirteenFFilings.push({
+                            accession: accessions[i],
+                            reportDate: reportDates[i],
+                            filedDate: filedDates[i],
+                            primaryDoc: primaryDocs[i]
+                        });
+                    }
+                }
+
+                if (thirteenFFilings.length === 0) {
+                    throw new Error('No 13F filings found');
+                }
+
+                statusEl.textContent = `Found ${thirteenFFilings.length} 13F filings. Parsing...`;
+
+                // Parse each filing
+                const newHoldings = {};
+                let parsed = 0;
+
+                for (const filing of thirteenFFilings) {
+                    try {
+                        const holdings = await parse13FFiling(filing, proxies);
+                        if (holdings && holdings.length > 0) {
+                            const quarter = getQuarterFromDate(filing.reportDate);
+                            const periodDates = getQuarterPeriod(quarter);
+
+                            newHoldings[quarter] = {
+                                reportDate: filing.reportDate,
+                                filedDate: filing.filedDate,
+                                periodStart: periodDates.start,
+                                periodEnd: periodDates.end,
+                                holdings: holdings
+                            };
+                            parsed++;
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to parse filing ${filing.accession}:`, e);
+                    }
+
+                    // Small delay to avoid rate limiting
+                    await new Promise(r => setTimeout(r, 200));
+                }
+
+                if (parsed === 0) {
+                    throw new Error('Could not parse any filings');
+                }
+
+                // Merge with existing data and save
+                const mergedData = mergeHoldingsData(newHoldings);
+                saveHoldingsToStorage(mergedData);
+                updateHoldingsDataFromStorage();
+
+                const lastChecked = new Date().toLocaleString();
+                localStorage.setItem('sa-tracker-last-13f-check', lastChecked);
+
+                statusEl.textContent = `Updated ${parsed} quarters. Last checked: ${lastChecked}`;
+                statusEl.className = 'data-update-status success';
+
+                // Clear performance cache so it recalculates with new data
+                fullPerformanceData = null;
+                equitiesOnlyData = null;
+                priceCache = {};
+
+                // Update quarter tabs if we have new quarters
+                updateQuarterTabs();
+
+                // Ensure currentQuarter is still valid
+                if (!QUARTER_ORDER.includes(currentQuarter)) {
+                    currentQuarter = QUARTER_ORDER[QUARTER_ORDER.length - 1];
+                }
+
+                // Refresh the UI
+                await renderOptionsConfig();
+                updateHoldingsUI(currentQuarter);
+
+            } catch (e) {
+                console.error('13F fetch error:', e);
+                statusEl.textContent = `Error: ${e.message}. Try again later.`;
+                statusEl.className = 'data-update-status error';
+            } finally {
+                spinner.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        async function parse13FFiling(filing, proxies) {
+            const accessionClean = filing.accession.replace(/-/g, '');
+            const baseUrl = `https://www.sec.gov/Archives/edgar/data/${SEC_CIK.replace(/^0+/, '')}/${accessionClean}`;
+
+            // Try to find and fetch the infotable XML
+            let xmlContent = null;
+            const possibleFiles = ['infotable.xml', 'primary_doc.xml', filing.primaryDoc];
+
+            for (const file of possibleFiles) {
+                if (!file || !file.endsWith('.xml')) continue;
+                for (const makeProxy of proxies) {
+                    try {
+                        const res = await fetch(makeProxy(`${baseUrl}/${file}`));
+                        if (res.ok) {
+                            const text = await res.text();
+                            if (text.includes('informationTable') || text.includes('infoTable')) {
+                                xmlContent = text;
+                                break;
+                            }
+                        }
+                    } catch (e) { /* try next */ }
+                }
+                if (xmlContent) break;
+            }
+
+            // If still no XML, try fetching the filing index to find the infotable
+            if (!xmlContent) {
+                for (const makeProxy of proxies) {
+                    try {
+                        const indexRes = await fetch(makeProxy(`${baseUrl}/index.json`));
+                        if (indexRes.ok) {
+                            const indexData = await indexRes.json();
+                            const items = indexData.directory?.item || [];
+                            for (const item of items) {
+                                if (item.name?.toLowerCase().includes('infotable') && item.name?.endsWith('.xml')) {
+                                    const xmlRes = await fetch(makeProxy(`${baseUrl}/${item.name}`));
+                                    if (xmlRes.ok) {
+                                        xmlContent = await xmlRes.text();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) { /* try next proxy */ }
+                    if (xmlContent) break;
+                }
+            }
+
+            if (!xmlContent) {
+                console.warn(`No infotable found for ${filing.accession}`);
+                return null;
+            }
+
+            return parseInfoTableXML(xmlContent);
+        }
+
+        function parseInfoTableXML(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, 'text/xml');
+
+            // Handle different namespace prefixes
+            const infoTables = doc.querySelectorAll('infoTable, ns1\\:infoTable, informationTable');
+
+            const holdings = [];
+
+            infoTables.forEach(table => {
+                try {
+                    // Get values handling different possible tag names/namespaces
+                    const getText = (names) => {
+                        for (const name of names) {
+                            const el = table.querySelector(name) || table.getElementsByTagName(name)[0];
+                            if (el?.textContent) return el.textContent.trim();
+                        }
+                        return '';
+                    };
+
+                    const nameOfIssuer = getText(['nameOfIssuer', 'ns1:nameOfIssuer']);
+                    const titleOfClass = getText(['titleOfClass', 'ns1:titleOfClass']);
+                    const cusip = getText(['cusip', 'ns1:cusip']);
+                    const valueStr = getText(['value', 'ns1:value']);
+                    const sharesStr = getText(['sshPrnamt', 'ns1:sshPrnamt', 'shrsOrPrnAmt sshPrnamt']);
+
+                    // Try alternate structure for shares
+                    let shares = parseInt(sharesStr.replace(/,/g, ''), 10);
+                    if (isNaN(shares)) {
+                        const shrsEl = table.querySelector('shrsOrPrnAmt, ns1\\:shrsOrPrnAmt');
+                        if (shrsEl) {
+                            const sshEl = shrsEl.querySelector('sshPrnamt, ns1\\:sshPrnamt');
+                            if (sshEl) shares = parseInt(sshEl.textContent.replace(/,/g, ''), 10);
+                        }
+                    }
+
+                    const value = parseInt(valueStr.replace(/,/g, ''), 10) * 1000; // Value is in thousands
+
+                    if (!nameOfIssuer || isNaN(value) || isNaN(shares)) return;
+
+                    // Determine ticker
+                    let ticker = CUSIP_TO_TICKER[cusip] || guessTickerFromName(nameOfIssuer);
+                    if (!ticker) {
+                        // Use first word of issuer name as fallback ticker
+                        ticker = nameOfIssuer.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, '');
+                    }
+
+                    // Determine type (stock, call, or put)
+                    const titleUpper = titleOfClass.toUpperCase();
+                    let type = 'stock';
+                    if (titleUpper.includes('CALL')) type = 'call';
+                    else if (titleUpper.includes('PUT')) type = 'put';
+
+                    // Add name suffix for options with same ticker
+                    let name = nameOfIssuer;
+                    if (type !== 'stock') {
+                        name = `${nameOfIssuer} (${type.charAt(0).toUpperCase() + type.slice(1)})`;
+                    }
+
+                    holdings.push({
+                        ticker,
+                        name,
+                        shares,
+                        value,
+                        type,
+                        cusip
+                    });
+                } catch (e) {
+                    console.warn('Failed to parse infoTable entry:', e);
+                }
+            });
+
+            return holdings;
+        }
+
+        function getQuarterFromDate(dateStr) {
+            const date = new Date(dateStr);
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            let quarter;
+            if (month <= 3) quarter = 'Q1';
+            else if (month <= 6) quarter = 'Q2';
+            else if (month <= 9) quarter = 'Q3';
+            else quarter = 'Q4';
+            return `${quarter}-${year}`;
+        }
+
+        function getQuarterPeriod(quarterStr) {
+            const [q, year] = quarterStr.split('-');
+            const periods = {
+                'Q1': { start: `${year}-01-01`, end: `${year}-03-31` },
+                'Q2': { start: `${year}-04-01`, end: `${year}-06-30` },
+                'Q3': { start: `${year}-07-01`, end: `${year}-09-30` },
+                'Q4': { start: `${year}-10-01`, end: `${year}-12-31` }
+            };
+            return periods[q];
+        }
+
+        function mergeHoldingsData(newData) {
+            // Start with existing hardcoded data as base
+            const merged = JSON.parse(JSON.stringify(HOLDINGS_DATA));
+
+            // Override with fetched data
+            for (const [quarter, data] of Object.entries(newData)) {
+                merged[quarter] = data;
+            }
+
+            return merged;
+        }
+
+        function saveHoldingsToStorage(data) {
+            localStorage.setItem('sa-tracker-holdings-data', JSON.stringify(data));
+            // Also update QUARTER_ORDER if we have new quarters
+            const quarters = Object.keys(data).sort((a, b) => {
+                const [qa, ya] = a.split('-');
+                const [qb, yb] = b.split('-');
+                if (ya !== yb) return ya.localeCompare(yb);
+                return qa.localeCompare(qb);
+            });
+            localStorage.setItem('sa-tracker-quarter-order', JSON.stringify(quarters));
+        }
+
+        function loadHoldingsFromStorage() {
+            try {
+                const data = localStorage.getItem('sa-tracker-holdings-data');
+                if (data) return JSON.parse(data);
+            } catch (e) { console.warn('Failed to load holdings from storage:', e); }
+            return null;
+        }
+
+        function updateHoldingsDataFromStorage() {
+            const stored = loadHoldingsFromStorage();
+            if (stored) {
+                // Update HOLDINGS_DATA in place
+                for (const [quarter, data] of Object.entries(stored)) {
+                    HOLDINGS_DATA[quarter] = data;
+                }
+                // Update QUARTER_ORDER
+                const storedOrder = localStorage.getItem('sa-tracker-quarter-order');
+                if (storedOrder) {
+                    const newOrder = JSON.parse(storedOrder);
+                    QUARTER_ORDER.length = 0;
+                    QUARTER_ORDER.push(...newOrder);
+                }
+            }
+        }
+
+        function updateDataStatusUI() {
+            const lastChecked = localStorage.getItem('sa-tracker-last-13f-check');
+            const statusEl = document.getElementById('data-update-status');
+            if (lastChecked) {
+                statusEl.textContent = `Last checked: ${lastChecked}`;
+            } else {
+                statusEl.textContent = 'Last checked: Never (using built-in data)';
+            }
+        }
+
+        // ============================================
+        // BLACK-SCHOLES
+        // ============================================
+        function normalCDF(x) {
+            const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+            const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+            const sign = x < 0 ? -1 : 1;
+            x = Math.abs(x) / Math.sqrt(2);
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return 0.5 * (1.0 + sign * y);
+        }
+
+        function blackScholes(S, K, T, r, sigma, isCall) {
+            if (T <= 0) return Math.max(0, isCall ? S - K : K - S);
+            if (sigma <= 0) return Math.max(0, isCall ? S - K : K - S);
+            const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+            const d2 = d1 - sigma * Math.sqrt(T);
+            if (isCall) {
+                return S * normalCDF(d1) - K * Math.exp(-r * T) * normalCDF(d2);
+            } else {
+                return K * Math.exp(-r * T) * normalCDF(-d2) - S * normalCDF(-d1);
+            }
+        }
+
+        function yearFraction(fromDate, toDate) {
+            return (new Date(toDate) - new Date(fromDate)) / (365.25 * 24 * 60 * 60 * 1000);
+        }
+
+        // ============================================
+        // STATE
+        // ============================================
+        let priceCache = {};
+        let performanceChart = null;
+        let currentQuarter = 'Q3-2025';
+        let optionConfig = loadOptionConfig();
+        let allOptionsConfigured = false;
+        let fullPerformanceData = null; // Stores { portfolioValues, spyValues, qqqValues, tickerPrices }
+        let equitiesOnlyData = null; // Stores equities-only performance
+        let selectedRange = 'ALL';
+        let portfolioMode = 'full'; // 'full' or 'equities'
+
+        function loadOptionConfig() {
+            try {
+                return JSON.parse(localStorage.getItem('sa-tracker-options-v3') || '{}');
+            } catch { return {}; }
+        }
+
+        function saveOptionConfig() {
+            localStorage.setItem('sa-tracker-options-v3', JSON.stringify(optionConfig));
+        }
+
+        function getOptionKey(quarter, ticker, type, shares) {
+            return `${quarter}-${ticker}-${type}-${shares}`;
+        }
+
+        // ============================================
+        // PRICE & IV FETCHING
+        // ============================================
+        async function fetchPrices(ticker, startDate, endDate) {
+            const cacheKey = `${ticker}-${startDate}-${endDate}`;
+            if (priceCache[cacheKey]) return priceCache[cacheKey];
+
+            const start = Math.floor(new Date(startDate).getTime() / 1000);
+            const end = Math.floor(new Date(endDate).getTime() / 1000);
+
+            const proxies = ['https://corsproxy.io/?', 'https://api.allorigins.win/raw?url='];
+            const baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
+
+            for (const proxy of proxies) {
+                try {
+                    const res = await fetch(proxy + encodeURIComponent(baseUrl));
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    if (data.chart?.result?.[0]) {
+                        const r = data.chart.result[0];
+                        const prices = {};
+                        const ts = r.timestamp || [];
+                        const close = r.indicators.adjclose?.[0]?.adjclose || r.indicators.quote?.[0]?.close || [];
+                        for (let i = 0; i < ts.length; i++) {
+                            if (close[i] != null) {
+                                prices[new Date(ts[i] * 1000).toISOString().split('T')[0]] = close[i];
+                            }
+                        }
+                        priceCache[cacheKey] = prices;
+                        return prices;
+                    }
+                } catch (e) { console.warn(`Failed ${ticker}:`, e); }
+            }
+            throw new Error(`Failed to fetch ${ticker}`);
+        }
+
+        // Fetch live quotes (current price + previous close) for 1D view
+        let liveQuotesCache = null;
+        let liveQuotesCacheTime = 0;
+        const LIVE_QUOTES_CACHE_TTL = 60 * 1000; // 1 minute cache
+
+        async function fetchLiveQuotes(tickers, forceRefresh = false) {
+            // Return cached data if still fresh (unless force refresh)
+            const now = Date.now();
+            if (!forceRefresh && liveQuotesCache && (now - liveQuotesCacheTime) < LIVE_QUOTES_CACHE_TTL) {
+                return liveQuotesCache;
+            }
+
+            const proxies = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?'];
+            const quotes = {};
+
+            // Fetch each ticker using chart API with range=2d
+            await Promise.all(tickers.map(async ticker => {
+                const baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2d&interval=1d`;
+                for (const proxy of proxies) {
+                    try {
+                        const res = await fetch(proxy + encodeURIComponent(baseUrl));
+                        if (!res.ok) continue;
+                        const data = await res.json();
+                        const result = data.chart?.result?.[0];
+                        if (result) {
+                            const meta = result.meta;
+                            const closes = result.indicators?.adjclose?.[0]?.adjclose || result.indicators?.quote?.[0]?.close || [];
+                            const currentPrice = meta.regularMarketPrice;
+                            const previousClose = closes.length >= 2 ? closes[closes.length - 2] : meta.chartPreviousClose;
+                            const change = ((currentPrice - previousClose) / previousClose) * 100;
+                            quotes[ticker] = { price: currentPrice, previousClose, change };
+                            break;
+                        }
+                    } catch (e) { console.warn(`Failed to fetch ${ticker}:`, e); }
+                }
+            }));
+
+            if (Object.keys(quotes).length > 0) {
+                liveQuotesCache = quotes;
+                liveQuotesCacheTime = now;
+                return quotes;
+            }
+            return null;
+        }
+
+        // Default IV estimates (fallback if live fetch fails)
+        const DEFAULT_IVS = {
+            'INTC': 45, 'SMH': 30, 'NVDA': 50, 'CRWV': 65,
+            'AVGO': 35, 'TSM': 35, 'MU': 50, 'BE': 60,
+        };
+
+        let ivCache = {};
+
+        async function fetchIV(ticker) {
+            if (ivCache[ticker]) return ivCache[ticker];
+
+            // Try Yahoo Finance via different proxies
+            const proxies = [
+                url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            ];
+
+            // Try options endpoint
+            const optionsUrl = `https://query2.finance.yahoo.com/v7/finance/options/${ticker}`;
+
+            for (const makeProxy of proxies) {
+                try {
+                    const res = await fetch(makeProxy(optionsUrl), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!res.ok) continue;
+
+                    const data = await res.json();
+                    const result = data.optionChain?.result?.[0];
+
+                    if (result) {
+                        const calls = result.options?.[0]?.calls || [];
+                        const puts = result.options?.[0]?.puts || [];
+                        const spot = result.quote?.regularMarketPrice;
+
+                        if (spot && (calls.length || puts.length)) {
+                            const allOpts = [...calls, ...puts].filter(o => o.impliedVolatility > 0);
+                            if (allOpts.length) {
+                                allOpts.sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot));
+                                const iv = Math.round(allOpts[0].impliedVolatility * 100);
+                                console.log(`${ticker}: IV = ${iv}% (live)`);
+                                ivCache[ticker] = iv;
+                                return iv;
+                            }
+                        }
+                    }
+                } catch (e) { /* try next proxy */ }
+            }
+
+            // Fallback to default
+            const defaultIV = DEFAULT_IVS[ticker] || 40;
+            console.log(`${ticker}: IV = ${defaultIV}% (default)`);
+            ivCache[ticker] = defaultIV;
+            return defaultIV;
+        }
+
+        // ============================================
+        // OPTIONS CONFIG UI
+        // ============================================
+        function getAllOptions() {
+            const options = [];
+            for (const quarter of QUARTER_ORDER) {
+                for (const h of HOLDINGS_DATA[quarter].holdings) {
+                    if (h.type === 'call' || h.type === 'put') {
+                        options.push({ ...h, quarter });
+                    }
+                }
+            }
+            return options;
+        }
+
+        async function renderOptionsConfig() {
+            const options = getAllOptions();
+            const tbody = document.getElementById('all-options-config');
+
+            // Fetch IVs in parallel
+            const uniqueTickers = [...new Set(options.map(o => o.ticker))];
+            await Promise.all(uniqueTickers.map(fetchIV));
+
+            tbody.innerHTML = options.map(o => {
+                const key = getOptionKey(o.quarter, o.ticker, o.type, o.shares);
+                const config = optionConfig[key] || {};
+                const iv = config.iv || ivCache[o.ticker] || DEFAULT_IVS[o.ticker] || 40;
+                const spotPrice = o.value / o.shares;
+
+                return `
+                    <tr data-key="${key}" data-ticker="${o.ticker}" data-type="${o.type}"
+                        data-shares="${o.shares}" data-quarter="${o.quarter}" data-spot="${spotPrice.toFixed(2)}">
+                        <td>${o.quarter}</td>
+                        <td><span class="ticker">${o.ticker}</span></td>
+                        <td>${o.type.toUpperCase()}</td>
+                        <td class="number">${o.shares.toLocaleString()}</td>
+                        <td class="number">${formatCurrency(o.value)}</td>
+                        <td>
+                            <input type="number" class="option-input config-strike ${config.strike ? '' : 'missing'}"
+                                   value="${config.strike || ''}" placeholder="Strike" step="0.5">
+                        </td>
+                        <td>
+                            <input type="date" class="option-input config-expiry ${config.expiry ? '' : 'missing'}"
+                                   value="${config.expiry || ''}" style="width:120px">
+                        </td>
+                        <td>
+                            <input type="number" class="option-input config-iv ${iv ? '' : 'missing'}"
+                                   value="${iv}" placeholder="IV" step="1" min="1" max="300">
+                        </td>
+                        <td class="calculated-premium">—</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Add event listeners
+            tbody.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', handleConfigInput);
+                input.addEventListener('change', handleConfigInput);
+            });
+
+            updateAllPremiums();
+            checkAllConfigured();
+        }
+
+        function handleConfigInput(e) {
+            const row = e.target.closest('tr');
+            const key = row.dataset.key;
+
+            if (!optionConfig[key]) optionConfig[key] = {};
+
+            const strike = row.querySelector('.config-strike').value;
+            const expiry = row.querySelector('.config-expiry').value;
+            const iv = row.querySelector('.config-iv').value;
+
+            if (strike) optionConfig[key].strike = parseFloat(strike);
+            if (expiry) optionConfig[key].expiry = expiry;
+            if (iv) optionConfig[key].iv = parseFloat(iv);
+
+            saveOptionConfig();
+            updateRowPremium(row);
+            checkAllConfigured();
+        }
+
+        function updateRowPremium(row) {
+            const key = row.dataset.key;
+            const config = optionConfig[key] || {};
+            const premiumCell = row.querySelector('.calculated-premium');
+
+            const strike = config.strike || parseFloat(row.querySelector('.config-strike').value);
+            const expiry = config.expiry || row.querySelector('.config-expiry').value;
+            const iv = config.iv || parseFloat(row.querySelector('.config-iv').value);
+            const spot = parseFloat(row.dataset.spot);
+            const shares = parseInt(row.dataset.shares);
+            const type = row.dataset.type;
+            const quarter = row.dataset.quarter;
+
+            // Update input styling
+            row.querySelector('.config-strike').classList.toggle('missing', !strike);
+            row.querySelector('.config-expiry').classList.toggle('missing', !expiry);
+            row.querySelector('.config-iv').classList.toggle('missing', !iv);
+
+            if (strike && expiry && iv && spot) {
+                const reportDate = HOLDINGS_DATA[quarter].reportDate;
+                const T = yearFraction(reportDate, expiry);
+                if (T > 0) {
+                    const optionPrice = blackScholes(spot, strike, T, 0.05, iv / 100, type === 'call');
+                    const premium = optionPrice * shares;
+                    premiumCell.textContent = formatCurrency(premium);
+                    optionConfig[key].calculatedPremium = premium;
+                    saveOptionConfig();
+                } else {
+                    premiumCell.textContent = 'Expired';
+                }
+            } else {
+                premiumCell.textContent = '—';
+            }
+        }
+
+        function updateAllPremiums() {
+            document.querySelectorAll('#all-options-config tr').forEach(updateRowPremium);
+        }
+
+        function checkAllConfigured() {
+            const rows = document.querySelectorAll('#all-options-config tr');
+            let allGood = true;
+
+            rows.forEach(row => {
+                const key = row.dataset.key;
+                const config = optionConfig[key] || {};
+                const strike = config.strike || parseFloat(row.querySelector('.config-strike').value);
+                const expiry = config.expiry || row.querySelector('.config-expiry').value;
+                const iv = config.iv || parseFloat(row.querySelector('.config-iv').value);
+
+                if (!strike || !expiry || !iv) allGood = false;
+            });
+
+            allOptionsConfigured = allGood;
+            updateCalculateButton();
+        }
+
+        function updateCalculateButton() {
+            const btn = document.getElementById('calculate-btn');
+            const hint = document.getElementById('mode-hint');
+            const warning = document.getElementById('config-warning');
+
+            if (portfolioMode === 'equities') {
+                btn.disabled = false;
+                warning.style.display = 'none';
+                hint.textContent = 'Equities Only mode - options configuration not required.';
+            } else {
+                btn.disabled = !allOptionsConfigured;
+                warning.style.display = allOptionsConfigured ? 'none' : 'block';
+                hint.textContent = allOptionsConfigured ? '' : 'Configure all options above, or switch to Equities Only mode.';
+            }
+        }
+
+        // ============================================
+        // PERFORMANCE CALCULATION
+        // ============================================
+        async function calculatePerformance() {
+            const allDates = new Set();
+            const tickerPrices = {};
+            const errors = [];
+
+            const allTickers = new Set(['SPY', 'QQQ']);
+            for (const q of QUARTER_ORDER) {
+                for (const h of HOLDINGS_DATA[q].holdings) {
+                    allTickers.add(h.ticker);
+                }
+            }
+
+            const startDate = '2024-10-01';
+            const endDate = new Date().toISOString().split('T')[0];
+
+            await Promise.all(Array.from(allTickers).map(async ticker => {
+                try {
+                    const prices = await fetchPrices(ticker, startDate, endDate);
+                    tickerPrices[ticker] = prices;
+                    Object.keys(prices).forEach(d => allDates.add(d));
+                } catch { errors.push(ticker); }
+            }));
+
+            if (errors.length > 0) {
+                showError(`Unable to fetch: ${errors.join(', ')}`);
+            }
+
+            const sortedDates = Array.from(allDates).sort();
+            if (!sortedDates.length) throw new Error('No price data');
+
+            const portfolioValues = [], spyValues = [], qqqValues = [];
+            let portfolioValue = 100, spyValue = 100, qqqValue = 100;
+            const riskFreeRate = 0.05;
+            let prevPrices = {}, prevOptionPrices = {};
+
+            for (const date of sortedDates) {
+                // Use holdings from a quarter starting on its reportDate (when values are accurate)
+                // e.g., Q2 holdings (valued as of June 30) are used from June 30 onward
+                let activeQuarter = 'Q4-2024';
+                for (const q of QUARTER_ORDER) {
+                    if (date >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                }
+
+                const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+                const stockHoldings = holdings.filter(h => h.type === 'stock');
+                const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+                // Calculate total portfolio value using 13F values for stocks, calculated premiums for options
+                // These values are accurate as of the reportDate
+                const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+                let totalOptionPremium = 0;
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+                }
+                const totalPortfolioValue = totalStockValue + totalOptionPremium;
+
+                let portfolioReturn = 0;
+
+                // Stock returns (weighted by 13F value)
+                for (const h of stockHoldings) {
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices?.[date]) continue;
+
+                    const currentPrice = prices[date];
+                    const prevPrice = prevPrices[h.ticker];
+
+                    if (prevPrice > 0) {
+                        const stockReturn = (currentPrice - prevPrice) / prevPrice;
+                        const weight = h.value / totalPortfolioValue;
+                        portfolioReturn += stockReturn * weight;
+                    }
+                    prevPrices[h.ticker] = currentPrice;
+                }
+
+                // Option returns (using Black-Scholes, weighted by calculated premium)
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (!config?.strike || !config?.expiry || !config?.iv) continue;
+
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices?.[date]) continue;
+
+                    const spot = prices[date];
+                    const T = yearFraction(date, config.expiry);
+                    const optionPrice = blackScholes(spot, config.strike, T, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                    const optKey = key + '-price';
+                    const prevOptionPrice = prevOptionPrices[optKey];
+
+                    if (prevOptionPrice > 0.01 && config.calculatedPremium) {
+                        const optionReturn = (optionPrice - prevOptionPrice) / prevOptionPrice;
+                        const weight = config.calculatedPremium / totalPortfolioValue;
+                        portfolioReturn += optionReturn * weight;
+                    }
+
+                    prevOptionPrices[optKey] = optionPrice;
+                    prevPrices[h.ticker] = spot;
+                }
+
+                portfolioValue *= (1 + portfolioReturn);
+
+                // Benchmarks
+                if (tickerPrices['SPY']?.[date]) {
+                    const p = tickerPrices['SPY'][date];
+                    if (prevPrices['SPY'] > 0) spyValue *= (1 + (p - prevPrices['SPY']) / prevPrices['SPY']);
+                    prevPrices['SPY'] = p;
+                }
+                if (tickerPrices['QQQ']?.[date]) {
+                    const p = tickerPrices['QQQ'][date];
+                    if (prevPrices['QQQ'] > 0) qqqValue *= (1 + (p - prevPrices['QQQ']) / prevPrices['QQQ']);
+                    prevPrices['QQQ'] = p;
+                }
+
+                portfolioValues.push({ date, value: portfolioValue });
+                spyValues.push({ date, value: spyValue });
+                qqqValues.push({ date, value: qqqValue });
+            }
+
+            return { portfolioValues, spyValues, qqqValues, tickerPrices };
+        }
+
+        // Calculate performance using only equity positions (no options)
+        function calculateEquitiesOnly(tickerPrices) {
+            const sortedDates = Array.from(Object.keys(tickerPrices['SPY'] || {})).sort();
+            if (!sortedDates.length) return { portfolioValues: [], spyValues: [], qqqValues: [] };
+
+            const portfolioValues = [], spyValues = [], qqqValues = [];
+            let portfolioValue = 100, spyValue = 100, qqqValue = 100;
+            let prevPrices = {};
+
+            for (const date of sortedDates) {
+                // Determine active quarter based on reportDate
+                let activeQuarter = 'Q4-2024';
+                for (const q of QUARTER_ORDER) {
+                    if (date >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                }
+
+                const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+                const stockHoldings = holdings.filter(h => h.type === 'stock');
+
+                // For equities-only, total is just stock values
+                const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+
+                let portfolioReturn = 0;
+
+                for (const h of stockHoldings) {
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices?.[date]) continue;
+
+                    const currentPrice = prices[date];
+                    const prevPrice = prevPrices[h.ticker];
+
+                    if (prevPrice > 0 && totalStockValue > 0) {
+                        const stockReturn = (currentPrice - prevPrice) / prevPrice;
+                        const weight = h.value / totalStockValue;
+                        portfolioReturn += stockReturn * weight;
+                    }
+                    prevPrices[h.ticker] = currentPrice;
+                }
+
+                portfolioValue *= (1 + portfolioReturn);
+
+                // Benchmarks
+                if (tickerPrices['SPY']?.[date]) {
+                    const p = tickerPrices['SPY'][date];
+                    if (prevPrices['SPY'] > 0) spyValue *= (1 + (p - prevPrices['SPY']) / prevPrices['SPY']);
+                    prevPrices['SPY'] = p;
+                }
+                if (tickerPrices['QQQ']?.[date]) {
+                    const p = tickerPrices['QQQ'][date];
+                    if (prevPrices['QQQ'] > 0) qqqValue *= (1 + (p - prevPrices['QQQ']) / prevPrices['QQQ']);
+                    prevPrices['QQQ'] = p;
+                }
+
+                portfolioValues.push({ date, value: portfolioValue });
+                spyValues.push({ date, value: spyValue });
+                qqqValues.push({ date, value: qqqValue });
+            }
+
+            return { portfolioValues, spyValues, qqqValues, tickerPrices };
+        }
+
+        function calculateMetrics(values) {
+            if (values.length < 2) return { totalReturn: 0, ytdReturn: 0, sharpe: 0, maxDrawdown: 0, quarterly: {} };
+
+            const totalReturn = (values[values.length - 1].value / values[0].value - 1) * 100;
+            const jan2026 = values.find(p => p.date >= '2026-01-01');
+            const ytdReturn = jan2026 ? (values[values.length - 1].value / jan2026.value - 1) * 100 : 0;
+
+            const returns = [];
+            for (let i = 1; i < values.length; i++) {
+                returns.push((values[i].value - values[i-1].value) / values[i-1].value);
+            }
+
+            const avg = returns.reduce((a, b) => a + b, 0) / returns.length;
+            const variance = returns.reduce((s, r) => s + (r - avg) ** 2, 0) / returns.length;
+            const sharpe = Math.sqrt(variance) > 0 ? (avg / Math.sqrt(variance)) * Math.sqrt(252) : 0;
+
+            let peak = values[0].value, maxDrawdown = 0;
+            for (const p of values) {
+                if (p.value > peak) peak = p.value;
+                maxDrawdown = Math.max(maxDrawdown, (peak - p.value) / peak);
+            }
+
+            // Calculate quarterly returns
+            const quarterRanges = {
+                'Q4-2024': { start: '2024-10-01', end: '2024-12-31', label: 'Q4 2024', subtitle: 'Oct - Dec' },
+                'Q1-2025': { start: '2025-01-01', end: '2025-03-31', label: 'Q1 2025', subtitle: 'Jan - Mar' },
+                'Q2-2025': { start: '2025-04-01', end: '2025-06-30', label: 'Q2 2025', subtitle: 'Apr - Jun' },
+                'Q3-2025': { start: '2025-07-01', end: '2025-09-30', label: 'Q3 2025', subtitle: 'Jul - Sep' },
+                'Q4-2025': { start: '2025-10-01', end: '2025-12-31', label: 'Q4 2025', subtitle: 'Oct - Dec' }
+            };
+
+            const quarterly = {};
+            for (const [q, range] of Object.entries(quarterRanges)) {
+                const qStart = values.find(p => p.date >= range.start);
+                const qEnd = [...values].reverse().find(p => p.date <= range.end);
+                if (qStart && qEnd && qStart.date <= range.end) {
+                    quarterly[q] = {
+                        return: ((qEnd.value / qStart.value) - 1) * 100,
+                        label: range.label,
+                        subtitle: range.subtitle,
+                        startDate: qStart.date,
+                        endDate: qEnd.date
+                    };
+                } else {
+                    quarterly[q] = null;
+                }
+            }
+
+            return { totalReturn, ytdReturn, sharpe, maxDrawdown: maxDrawdown * 100, quarterly };
+        }
+
+        // Detect significant moves (15%+ over 2-4 trading days) and attribute to holdings
+        function detectBigMoves(portfolioValues, tickerPrices) {
+            const moves = [];
+            const threshold = 0.15; // 15% move
+            const minWindow = 2;
+            const maxWindow = 4;
+
+            // First pass: find all candidate moves
+            const candidates = [];
+            for (let i = minWindow; i < portfolioValues.length; i++) {
+                for (let w = minWindow; w <= maxWindow && i - w >= 0; w++) {
+                    const startVal = portfolioValues[i - w].value;
+                    const endVal = portfolioValues[i].value;
+                    const change = (endVal - startVal) / startVal;
+
+                    if (Math.abs(change) >= threshold) {
+                        candidates.push({
+                            startIndex: i - w,
+                            endIndex: i,
+                            change: change,
+                            absChange: Math.abs(change)
+                        });
+                    }
+                }
+            }
+
+            // Second pass: for overlapping candidates, keep only the largest
+            candidates.sort((a, b) => b.absChange - a.absChange);
+            const usedDays = new Set();
+
+            for (const cand of candidates) {
+                // Check if this overlaps with an already-selected move
+                let overlaps = false;
+                for (let d = cand.startIndex; d <= cand.endIndex; d++) {
+                    if (usedDays.has(d)) { overlaps = true; break; }
+                }
+                if (overlaps) continue;
+
+                // Mark these days as used
+                for (let d = cand.startIndex; d <= cand.endIndex; d++) {
+                    usedDays.add(d);
+                }
+
+                const startDate = portfolioValues[cand.startIndex].date;
+                const endDate = portfolioValues[cand.endIndex].date;
+
+                // Get active quarter for this period
+                let activeQuarter = 'Q4-2024';
+                for (const q of QUARTER_ORDER) {
+                    if (startDate >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                }
+
+                const stockHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'stock');
+                const optionHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+                // Calculate total portfolio value
+                const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+                let totalOptionPremium = 0;
+                if (portfolioMode === 'full') {
+                    for (const h of optionHoldings) {
+                        const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                        const config = optionConfig[key];
+                        if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+                    }
+                }
+                const totalValue = portfolioMode === 'full' ? totalStockValue + totalOptionPremium : totalStockValue;
+                const riskFreeRate = 0.05;
+
+                // Calculate each position's contribution
+                const contributions = [];
+
+                // Stock contributions
+                for (const h of stockHoldings) {
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices?.[startDate] || !prices?.[endDate]) continue;
+
+                    const stockReturn = (prices[endDate] - prices[startDate]) / prices[startDate];
+                    const weight = h.value / totalValue;
+                    const contribution = stockReturn * weight;
+
+                    contributions.push({
+                        ticker: h.ticker,
+                        stockReturn: stockReturn * 100,
+                        weight: weight * 100,
+                        contribution: contribution * 100
+                    });
+                }
+
+                // Option contributions (only in full portfolio mode)
+                if (portfolioMode === 'full') {
+                    for (const h of optionHoldings) {
+                        const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                        const config = optionConfig[key];
+                        if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
+
+                        const prices = tickerPrices[h.ticker];
+                        if (!prices?.[startDate] || !prices?.[endDate]) continue;
+
+                        const startSpot = prices[startDate];
+                        const endSpot = prices[endDate];
+                        const startT = yearFraction(startDate, config.expiry);
+                        const endT = yearFraction(endDate, config.expiry);
+
+                        const startOptionPrice = blackScholes(startSpot, config.strike, startT, riskFreeRate, config.iv / 100, h.type === 'call');
+                        const endOptionPrice = blackScholes(endSpot, config.strike, endT, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                        if (startOptionPrice < 0.01) continue;
+
+                        const optionReturn = (endOptionPrice - startOptionPrice) / startOptionPrice;
+                        const weight = config.calculatedPremium / totalValue;
+                        const contribution = optionReturn * weight;
+
+                        contributions.push({
+                            ticker: `${h.ticker} ${h.type.toUpperCase()}`,
+                            stockReturn: optionReturn * 100,
+                            weight: weight * 100,
+                            contribution: contribution * 100
+                        });
+                    }
+                }
+
+                // Sort by absolute contribution
+                contributions.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+
+                moves.push({
+                    startDate,
+                    endDate,
+                    endIndex: cand.endIndex,
+                    change: cand.change * 100,
+                    contributions: contributions, // All contributions for expanded view
+                    value: portfolioValues[cand.endIndex].value
+                });
+            }
+
+            // Sort moves chronologically
+            moves.sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+            return moves;
+        }
+
+        function formatMoveExplanation(move) {
+            const direction = move.change > 0 ? 'gain' : 'drop';
+            const topContribs = move.contributions.slice(0, 5).filter(c =>
+                Math.sign(c.contribution) === Math.sign(move.change) && Math.abs(c.contribution) > 0.5
+            );
+
+            if (topContribs.length === 0) {
+                return `${move.change > 0 ? '+' : ''}${move.change.toFixed(1)}% ${direction}`;
+            }
+
+            // Group by similar returns
+            const bigMovers = topContribs.filter(c => Math.abs(c.stockReturn) > 5);
+
+            if (bigMovers.length === 1) {
+                const c = bigMovers[0];
+                const pct = Math.abs(c.contribution / move.change * 100).toFixed(0);
+                return `${move.change > 0 ? '+' : ''}${move.change.toFixed(1)}% ${direction}: ${pct}% from ${c.ticker} (${c.stockReturn > 0 ? '+' : ''}${c.stockReturn.toFixed(0)}%)`;
+            } else if (bigMovers.length > 1) {
+                const tickers = bigMovers.slice(0, 4).map(c => c.ticker).join(', ');
+                const minRet = Math.min(...bigMovers.map(c => c.stockReturn));
+                const maxRet = Math.max(...bigMovers.map(c => c.stockReturn));
+                const rangeStr = minRet < 0
+                    ? `fell ${Math.abs(maxRet).toFixed(0)}-${Math.abs(minRet).toFixed(0)}%`
+                    : `rose ${minRet.toFixed(0)}-${maxRet.toFixed(0)}%`;
+                return `${move.change > 0 ? '+' : ''}${move.change.toFixed(1)}% ${direction}: ${tickers} ${rangeStr}`;
+            }
+
+            return `${move.change > 0 ? '+' : ''}${move.change.toFixed(1)}% ${direction}`;
+        }
+
+        let bigMoves = [];
+
+        // ============================================
+        // CHART & UI
+        // ============================================
+        function renderChart(portfolio, spy, qqq, portfolioLabel = 'SA LP (Estimated)') {
+            const ctx = document.getElementById('performance-chart').getContext('2d');
+            if (performanceChart) performanceChart.destroy();
+
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: portfolioLabel,
+                            data: portfolio.map(p => ({ x: p.date, y: p.value })),
+                            borderColor: '#2c5282',
+                            backgroundColor: 'rgba(44, 82, 130, 0.1)',
+                            borderWidth: 2, fill: true, tension: 0.1, pointRadius: 0
+                        },
+                        {
+                            label: 'SPY',
+                            data: spy.map(p => ({ x: p.date, y: p.value })),
+                            borderColor: '#718096',
+                            borderWidth: 1.5, borderDash: [5, 5], fill: false, tension: 0.1, pointRadius: 0
+                        },
+                        {
+                            label: 'QQQ',
+                            data: qqq.map(p => ({ x: p.date, y: p.value })),
+                            borderColor: '#a0aec0',
+                            borderWidth: 1.5, borderDash: [2, 2], fill: false, tension: 0.1, pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    onClick: (event, elements, chart) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const date = chart.data.datasets[0].data[index].x;
+                            showPortfolioWeightsForDate(date);
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top', align: 'end' },
+                        tooltip: {
+                            callbacks: {
+                                title: ctx => {
+                                    const date = ctx[0]?.raw?.x;
+                                    if (!date) return '';
+                                    return new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+                                        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                                    });
+                                },
+                                label: ctx => {
+                                    const r = (ctx.parsed.y - 100).toFixed(2);
+                                    return `${ctx.dataset.label}: ${r >= 0 ? '+' : ''}${r}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { type: 'time', time: { unit: 'month' }, grid: { display: false } },
+                        y: { ticks: { callback: v => (v - 100).toFixed(0) + '%' } }
+                    }
+                }
+            });
+        }
+
+        function calculateWeightsForDate(date) {
+            const data = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            if (!data || !data.tickerPrices) return null;
+
+            const { tickerPrices } = data;
+            const riskFreeRate = 0.05;
+
+            // Determine active quarter for this date
+            let activeQuarter = 'Q4-2024';
+            for (const q of QUARTER_ORDER) {
+                if (date >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+            }
+
+            const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+            const stockHoldings = holdings.filter(h => h.type === 'stock');
+            const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+            const weights = [];
+            let totalValue = 0;
+
+            // Calculate stock values
+            for (const h of stockHoldings) {
+                const prices = tickerPrices[h.ticker];
+                if (!prices || !prices[date]) continue;
+
+                const price = prices[date];
+                const value = h.shares * price;
+                totalValue += value;
+
+                weights.push({
+                    ticker: h.ticker,
+                    type: 'stock',
+                    shares: h.shares,
+                    price: price,
+                    value: value,
+                    weight: 0 // will calculate after totaling
+                });
+            }
+
+            // Calculate option values (only in full portfolio mode)
+            if (portfolioMode === 'full') {
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (!config?.strike || !config?.expiry || !config?.iv) continue;
+
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices || !prices[date]) continue;
+
+                    const spot = prices[date];
+                    const T = yearFraction(date, config.expiry);
+                    const optionPrice = blackScholes(spot, config.strike, T, riskFreeRate, config.iv / 100, h.type === 'call');
+                    const value = optionPrice * h.shares;
+
+                    if (value > 0) {
+                        totalValue += value;
+                        weights.push({
+                            ticker: h.ticker,
+                            type: h.type,
+                            shares: h.shares,
+                            price: optionPrice,
+                            value: value,
+                            weight: 0,
+                            strike: config.strike,
+                            expiry: config.expiry
+                        });
+                    }
+                }
+            }
+
+            // Calculate weight percentages
+            for (const w of weights) {
+                w.weight = (w.value / totalValue) * 100;
+            }
+
+            // Sort by weight descending
+            weights.sort((a, b) => b.weight - a.weight);
+
+            return {
+                date,
+                quarter: activeQuarter,
+                totalValue,
+                weights
+            };
+        }
+
+        function showPortfolioWeightsForDate(date) {
+            const result = calculateWeightsForDate(date);
+            if (!result) return;
+
+            const panel = document.getElementById('weights-panel');
+            const dateEl = document.getElementById('weights-date');
+            const quarterEl = document.getElementById('weights-quarter');
+            const totalEl = document.getElementById('weights-total');
+            const grid = document.getElementById('weights-grid');
+
+            // Format date for display
+            const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+            });
+
+            dateEl.textContent = `- ${formattedDate}`;
+            quarterEl.textContent = result.quarter.replace('-', ' ');
+            totalEl.textContent = formatCurrency(result.totalValue);
+
+            // Render weight cards
+            grid.innerHTML = result.weights.map(w => {
+                const typeClass = w.type === 'call' ? 'call' : (w.type === 'put' ? 'put' : '');
+                const typeBadge = w.type !== 'stock'
+                    ? `<span class="weight-card-type ${typeClass}">${w.type}</span>`
+                    : '';
+
+                return `
+                    <div class="weight-card ${typeClass}">
+                        <div class="weight-card-ticker">
+                            ${w.ticker}
+                            ${typeBadge}
+                        </div>
+                        <div class="weight-card-pct">${w.weight.toFixed(1)}%</div>
+                        <div class="weight-card-value">${formatCurrency(w.value)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideWeightsPanel() {
+            document.getElementById('weights-panel').style.display = 'none';
+        }
+
+        function updateMetricsUI(m) {
+            const fmt = v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+
+            const tr = document.getElementById('total-return');
+            tr.textContent = fmt(m.totalReturn);
+            tr.className = `metric-value ${m.totalReturn >= 0 ? 'positive' : 'negative'}`;
+
+            const yr = document.getElementById('ytd-return');
+            yr.textContent = fmt(m.ytdReturn);
+            yr.className = `metric-value ${m.ytdReturn >= 0 ? 'positive' : 'negative'}`;
+
+            document.getElementById('sharpe-ratio').textContent = m.sharpe.toFixed(2);
+
+            const md = document.getElementById('max-drawdown');
+            md.textContent = `-${m.maxDrawdown.toFixed(1)}%`;
+            md.className = 'metric-value negative';
+
+            // Generate quarterly cards with expandable breakdowns
+            const quarterlyContainer = document.getElementById('quarterly-metrics');
+            const quarters = ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025', 'Q4-2025'];
+
+            quarterlyContainer.innerHTML = quarters.map(q => {
+                const qData = m.quarterly?.[q];
+                if (!qData) {
+                    return `
+                        <div class="metric-card">
+                            <div class="metric-label">${q.replace('-', ' ')}</div>
+                            <div class="metric-value">—</div>
+                            <div class="metric-subtitle">No data</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="metric-card expandable" data-quarter="${q}">
+                        <div class="metric-label">${qData.label}</div>
+                        <div class="metric-value ${qData.return >= 0 ? 'positive' : 'negative'}">${fmt(qData.return)}</div>
+                        <div class="metric-subtitle">${qData.subtitle}</div>
+                        <div class="expand-hint">click for breakdown</div>
+                        <div class="metric-breakdown" id="breakdown-${q}"></div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            quarterlyContainer.querySelectorAll('.metric-card.expandable').forEach(card => {
+                card.addEventListener('click', () => {
+                    const wasExpanded = card.classList.contains('expanded');
+                    // Collapse all
+                    quarterlyContainer.querySelectorAll('.metric-card').forEach(c => c.classList.remove('expanded'));
+
+                    if (!wasExpanded) {
+                        card.classList.add('expanded');
+                        const q = card.dataset.quarter;
+                        loadQuarterBreakdown(q);
+                    }
+                });
+            });
+        }
+
+        function loadQuarterBreakdown(quarter) {
+            const breakdownEl = document.getElementById(`breakdown-${quarter}`);
+            if (!breakdownEl || !fullPerformanceData) return;
+
+            const { tickerPrices } = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+
+            // Use same calendar quarter ranges as calculateMetrics
+            const quarterRanges = {
+                'Q4-2024': { start: '2024-10-01', end: '2024-12-31' },
+                'Q1-2025': { start: '2025-01-01', end: '2025-03-31' },
+                'Q2-2025': { start: '2025-04-01', end: '2025-06-30' },
+                'Q3-2025': { start: '2025-07-01', end: '2025-09-30' },
+                'Q4-2025': { start: '2025-10-01', end: '2025-12-31' }
+            };
+
+            const range = quarterRanges[quarter];
+            if (!range) return;
+
+            // Determine which holdings to use - based on reportDate
+            let holdingsQuarter = 'Q4-2024';
+            for (const q of QUARTER_ORDER) {
+                if (range.start >= HOLDINGS_DATA[q].reportDate) holdingsQuarter = q;
+            }
+
+            const qData = HOLDINGS_DATA[holdingsQuarter];
+            const stockHoldings = qData.holdings.filter(h => h.type === 'stock');
+            const optionHoldings = qData.holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+            // Calculate total portfolio value (stocks + option premiums)
+            const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+            let totalOptionPremium = 0;
+            if (portfolioMode === 'full') {
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(holdingsQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+                }
+            }
+            const totalPortfolioValue = portfolioMode === 'full' ? totalStockValue + totalOptionPremium : totalStockValue;
+
+            const qStart = range.start;
+            const qEnd = range.end;
+            const riskFreeRate = 0.05;
+
+            const contributions = [];
+
+            // Stock contributions
+            for (const h of stockHoldings) {
+                const prices = tickerPrices[h.ticker];
+                if (!prices) continue;
+
+                const dates = Object.keys(prices).sort();
+                const datesInRange = dates.filter(d => d >= qStart && d <= qEnd);
+                if (datesInRange.length < 2) continue;
+
+                const firstPrice = prices[datesInRange[0]];
+                const lastPrice = prices[datesInRange[datesInRange.length - 1]];
+                const returnPct = ((lastPrice - firstPrice) / firstPrice) * 100;
+                const weight = (h.value / totalPortfolioValue) * 100;
+                const contribution = returnPct * (weight / 100);
+
+                contributions.push({
+                    ticker: h.ticker,
+                    type: 'stock',
+                    weight,
+                    return: returnPct,
+                    contribution
+                });
+            }
+
+            // Option contributions (only in full portfolio mode)
+            if (portfolioMode === 'full') {
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(holdingsQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
+
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices) continue;
+
+                    const dates = Object.keys(prices).sort();
+                    const datesInRange = dates.filter(d => d >= qStart && d <= qEnd);
+                    if (datesInRange.length < 2) continue;
+
+                    const startSpot = prices[datesInRange[0]];
+                    const endSpot = prices[datesInRange[datesInRange.length - 1]];
+                    const startT = yearFraction(datesInRange[0], config.expiry);
+                    const endT = yearFraction(datesInRange[datesInRange.length - 1], config.expiry);
+
+                    const startOptionPrice = blackScholes(startSpot, config.strike, startT, riskFreeRate, config.iv / 100, h.type === 'call');
+                    const endOptionPrice = blackScholes(endSpot, config.strike, endT, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                    if (startOptionPrice < 0.01) continue; // Avoid division issues
+
+                    const returnPct = ((endOptionPrice - startOptionPrice) / startOptionPrice) * 100;
+                    const weight = (config.calculatedPremium / totalPortfolioValue) * 100;
+                    const contribution = returnPct * (weight / 100);
+
+                    contributions.push({
+                        ticker: `${h.ticker} ${h.type.toUpperCase()}`,
+                        type: h.type,
+                        weight,
+                        return: returnPct,
+                        contribution
+                    });
+                }
+            }
+
+            contributions.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+
+            const totalContrib = contributions.reduce((s, c) => s + c.contribution, 0);
+
+            breakdownEl.innerHTML = `
+                <div class="breakdown-header breakdown-row">
+                    <span class="breakdown-ticker">Ticker</span>
+                    <span class="breakdown-weight">Weight</span>
+                    <span class="breakdown-return">Return</span>
+                    <span class="breakdown-contrib">Contrib.</span>
+                </div>
+                ${contributions.map(c => `
+                    <div class="breakdown-row">
+                        <span class="breakdown-ticker">${c.ticker}</span>
+                        <span class="breakdown-weight">${c.weight.toFixed(1)}%</span>
+                        <span class="breakdown-return">${c.return >= 0 ? '+' : ''}${c.return.toFixed(1)}%</span>
+                        <span class="breakdown-contrib ${c.contribution >= 0 ? 'positive' : 'negative'}">${c.contribution >= 0 ? '+' : ''}${c.contribution.toFixed(2)}%</span>
+                    </div>
+                `).join('')}
+                <div class="breakdown-row" style="border-top: 2px solid var(--border); margin-top: 0.25rem; padding-top: 0.5rem; font-weight: 600;">
+                    <span class="breakdown-ticker">Total</span>
+                    <span class="breakdown-weight"></span>
+                    <span class="breakdown-return"></span>
+                    <span class="breakdown-contrib ${totalContrib >= 0 ? 'positive' : 'negative'}">${totalContrib >= 0 ? '+' : ''}${totalContrib.toFixed(2)}%</span>
+                </div>
+            `;
+        }
+
+        function formatCurrency(v) {
+            if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+            if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+            return `$${(v / 1e3).toFixed(0)}K`;
+        }
+
+        function updateHoldingsUI(quarter) {
+            const data = HOLDINGS_DATA[quarter];
+            const stocks = data.holdings.filter(h => h.type === 'stock');
+            const options = data.holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+            // Calculate total: stock values + option premiums (not notional)
+            const totalStockValue = stocks.reduce((s, h) => s + h.value, 0);
+            let totalOptionPremium = 0;
+            for (const h of options) {
+                const key = getOptionKey(quarter, h.ticker, h.type, h.shares);
+                const config = optionConfig[key] || {};
+                if (config.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+            }
+            const totalPortfolioValue = totalStockValue + totalOptionPremium;
+            const totalNotional = data.holdings.reduce((s, h) => s + h.value, 0);
+
+            document.getElementById('report-date').textContent = new Date(data.reportDate)
+                .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('total-value').textContent = formatCurrency(totalPortfolioValue);
+            document.getElementById('holdings-count').textContent = data.holdings.length;
+
+            document.getElementById('stock-holdings').innerHTML = stocks.map(h => `
+                <tr>
+                    <td><span class="ticker">${h.ticker}</span></td>
+                    <td>${h.name}</td>
+                    <td class="number">${h.shares.toLocaleString()}</td>
+                    <td class="number">${formatCurrency(h.value)}</td>
+                    <td class="number">${(h.value / totalPortfolioValue * 100).toFixed(1)}%</td>
+                </tr>
+            `).join('');
+
+            const optCont = document.getElementById('options-container');
+            if (options.length > 0) {
+                optCont.style.display = 'block';
+                document.getElementById('options-holdings').innerHTML = options.map(h => {
+                    const key = getOptionKey(quarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key] || {};
+                    const premium = config.calculatedPremium || 0;
+                    const weight = totalPortfolioValue > 0 ? (premium / totalPortfolioValue * 100).toFixed(1) : '—';
+                    return `
+                        <tr>
+                            <td><span class="ticker">${h.ticker}</span></td>
+                            <td>${h.type.toUpperCase()}</td>
+                            <td class="number">${formatCurrency(h.value)}</td>
+                            <td class="number">${config.strike ? '$' + config.strike : '—'}</td>
+                            <td>${config.expiry || '—'}</td>
+                            <td>${config.iv ? config.iv + '%' : '—'}</td>
+                            <td class="number">${premium ? formatCurrency(premium) : '—'}</td>
+                            <td class="number">${premium ? weight + '%' : '—'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                optCont.style.display = 'none';
+            }
+
+            document.querySelectorAll('.tab').forEach(t =>
+                t.classList.toggle('active', t.dataset.quarter === quarter)
+            );
+        }
+
+        function showError(msg) {
+            document.getElementById('error-container').innerHTML =
+                `<div class="error-message">${msg}</div>`;
+        }
+
+        // ============================================
+        // EVENTS
+        // ============================================
+        document.getElementById('quarter-tabs').addEventListener('click', e => {
+            if (e.target.classList.contains('tab')) {
+                currentQuarter = e.target.dataset.quarter;
+                updateHoldingsUI(currentQuarter);
+            }
+        });
+
+        document.getElementById('calculate-btn').addEventListener('click', async () => {
+            document.getElementById('chart-loading').style.display = 'block';
+            document.getElementById('performance-section').style.display = 'block';
+            document.getElementById('metrics-section').style.display = 'block';
+
+            try {
+                fullPerformanceData = await calculatePerformance();
+                equitiesOnlyData = calculateEquitiesOnly(fullPerformanceData.tickerPrices);
+                document.getElementById('chart-loading').style.display = 'none';
+                updateChartForRange(selectedRange);
+            } catch (e) {
+                console.error(e);
+                showError('Failed to calculate performance');
+                document.getElementById('chart-loading').innerHTML = '<p>Failed</p>';
+            }
+        });
+
+        // Portfolio mode tabs (Full vs Equities Only)
+        document.querySelector('.portfolio-mode-tabs').addEventListener('click', async e => {
+            if (e.target.classList.contains('mode-tab')) {
+                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                portfolioMode = e.target.dataset.mode;
+                updateCalculateButton();
+                hideWeightsPanel();
+                if (fullPerformanceData) {
+                    await updateChartForRange(selectedRange);
+                }
+            }
+        });
+
+        // Time range tabs
+        document.querySelector('.time-range-tabs').addEventListener('click', async e => {
+            if (e.target.classList.contains('range-tab')) {
+                document.querySelectorAll('.range-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                selectedRange = e.target.dataset.range;
+                hideWeightsPanel();
+
+                const customPicker = document.getElementById('custom-range-picker');
+                if (selectedRange === 'CUSTOM') {
+                    customPicker.style.display = 'flex';
+                } else {
+                    customPicker.style.display = 'none';
+                    if (fullPerformanceData) {
+                        await updateChartForRange(selectedRange);
+                    }
+                }
+            }
+        });
+
+        // Custom range apply button
+        document.getElementById('apply-custom-range').addEventListener('click', () => {
+            const startDate = document.getElementById('custom-start').value;
+            const endDate = document.getElementById('custom-end').value;
+            if (startDate && endDate && fullPerformanceData) {
+                updateChartForCustomRange(startDate, endDate);
+            }
+        });
+
+        // Weights panel close button
+        document.getElementById('weights-close').addEventListener('click', hideWeightsPanel);
+
+        function getDateRangeStart(range) {
+            const now = new Date();
+            switch (range) {
+                case '1D': return new Date(now - 5 * 24 * 60 * 60 * 1000);
+                case '1W': return new Date(now - 7 * 24 * 60 * 60 * 1000);
+                case '1M': return new Date(now - 30 * 24 * 60 * 60 * 1000);
+                case '3M': return new Date(now - 90 * 24 * 60 * 60 * 1000);
+                case '6M': return new Date(now - 180 * 24 * 60 * 60 * 1000);
+                default: return null;
+            }
+        }
+
+        function filterDataByRange(values, range) {
+            if (range === 'ALL') return values;
+            const startDate = getDateRangeStart(range);
+            if (!startDate) return values;
+            const startStr = startDate.toISOString().split('T')[0];
+            const filtered = values.filter(v => v.date >= startStr);
+            if (filtered.length === 0) return values;
+            // Rebase to 100 at start of range
+            const baseValue = filtered[0].value;
+            return filtered.map(v => ({ date: v.date, value: (v.value / baseValue) * 100 }));
+        }
+
+        async function updateChartForRange(range) {
+            if (!fullPerformanceData) return;
+
+            // Select data based on portfolio mode
+            const data = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            const { portfolioValues, spyValues, qqqValues, tickerPrices } = data;
+
+            // Special handling for 1D - use live quotes
+            if (range === '1D') {
+                await updateChartFor1D(data);
+                return;
+            }
+
+            const filteredPortfolio = filterDataByRange(portfolioValues, range);
+            const filteredSpy = filterDataByRange(spyValues, range);
+            const filteredQqq = filterDataByRange(qqqValues, range);
+
+            const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
+            renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
+            updateMetricsUI(calculateMetrics(filteredPortfolio));
+            updateConstituentsUI(range, tickerPrices);
+            updateBigMovesUI(portfolioValues, tickerPrices, range);
+
+            const rangeLabels = { '1D': '1 Day', '1W': '1 Week', '1M': '1 Month', '3M': '3 Months', '6M': '6 Months', 'ALL': 'All Time', 'CUSTOM': 'Custom' };
+            document.getElementById('range-label').textContent = `(${rangeLabels[range]})`;
+        }
+
+        async function updateChartFor1D(data) {
+            const { tickerPrices } = data;
+            const riskFreeRate = 0.05;
+
+            // Determine which quarter's holdings to use (most recent with reportDate <= today)
+            const today = new Date().toISOString().split('T')[0];
+            let activeQuarter = QUARTER_ORDER[0];
+            for (const q of QUARTER_ORDER) {
+                if (today >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+            }
+
+            const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+            const stockHoldings = holdings.filter(h => h.type === 'stock');
+            const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+            // Get all tickers we need quotes for (stocks + option underlyings + benchmarks)
+            const stockTickers = stockHoldings.map(h => h.ticker);
+            const optionTickers = optionHoldings.map(h => h.ticker);
+            const allTickers = [...new Set([...stockTickers, ...optionTickers, 'SPY', 'QQQ'])];
+
+            // Fetch live quotes
+            const liveQuotes = await fetchLiveQuotes(allTickers);
+            if (!liveQuotes) {
+                document.getElementById('range-label').textContent = '(1 Day - Live quotes unavailable)';
+                return;
+            }
+
+            // Calculate total portfolio value for weighting
+            // For stocks: use current market value (shares * current price)
+            // For options: use Black-Scholes value with current price
+            let totalValue = 0;
+            const positionValues = [];
+
+            for (const h of stockHoldings) {
+                const quote = liveQuotes[h.ticker];
+                if (quote) {
+                    const currentValue = h.shares * quote.price;
+                    totalValue += currentValue;
+                    positionValues.push({ holding: h, currentValue, quote, type: 'stock' });
+                }
+            }
+
+            // Include options only in full portfolio mode
+            if (portfolioMode === 'full') {
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (!config?.strike || !config?.expiry || !config?.iv) continue;
+
+                    const quote = liveQuotes[h.ticker];
+                    if (!quote) continue;
+
+                    const T = yearFraction(today, config.expiry);
+                    const currentOptionPrice = blackScholes(quote.price, config.strike, T, riskFreeRate, config.iv / 100, h.type === 'call');
+                    const currentValue = currentOptionPrice * h.shares;
+
+                    if (currentValue > 0) {
+                        totalValue += currentValue;
+                        positionValues.push({ holding: h, currentValue, quote, config, type: h.type });
+                    }
+                }
+            }
+
+            // Calculate 1D changes and contributions
+            let portfolioChange = 0;
+            const tickerChanges = [];
+
+            for (const pos of positionValues) {
+                const weight = pos.currentValue / totalValue;
+                let change;
+
+                if (pos.type === 'stock') {
+                    // Stock: use the stock's % change directly
+                    change = pos.quote.change;
+                } else {
+                    // Option: calculate option value change based on underlying price change
+                    const h = pos.holding;
+                    const config = pos.config;
+                    const T = yearFraction(today, config.expiry);
+                    const Tyesterday = T + (1 / 365.25); // One more day of time value yesterday
+
+                    const currentOptionPrice = blackScholes(pos.quote.price, config.strike, T, riskFreeRate, config.iv / 100, h.type === 'call');
+                    const yesterdayOptionPrice = blackScholes(pos.quote.previousClose, config.strike, Tyesterday, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                    if (yesterdayOptionPrice > 0.01) {
+                        change = ((currentOptionPrice - yesterdayOptionPrice) / yesterdayOptionPrice) * 100;
+                    } else {
+                        change = 0;
+                    }
+                }
+
+                const contribution = weight * change;
+                portfolioChange += contribution;
+
+                const tickerLabel = pos.type === 'stock' ? pos.holding.ticker : `${pos.holding.ticker} ${pos.type.toUpperCase()}`;
+                tickerChanges.push({
+                    ticker: tickerLabel,
+                    type: pos.type,
+                    change: change,
+                    weight: weight * 100,
+                    contribution: contribution
+                });
+            }
+
+            const spyChange = liveQuotes['SPY']?.change || 0;
+            const qqqChange = liveQuotes['QQQ']?.change || 0;
+
+            // Create simple 2-point data for chart (yesterday=100, today=100+change)
+            const formatLocalDate = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            const now = new Date();
+            const yesterdayDate = new Date(now);
+            yesterdayDate.setDate(now.getDate() - 1);
+            const todayStr = formatLocalDate(now);
+            const yesterdayStr = formatLocalDate(yesterdayDate);
+
+            const portfolioValues = [
+                { date: yesterdayStr, value: 100 },
+                { date: todayStr, value: 100 + portfolioChange }
+            ];
+            const spyValues = [
+                { date: yesterdayStr, value: 100 },
+                { date: todayStr, value: 100 + spyChange }
+            ];
+            const qqqValues = [
+                { date: yesterdayStr, value: 100 },
+                { date: todayStr, value: 100 + qqqChange }
+            ];
+
+            const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
+            renderChart(portfolioValues, spyValues, qqqValues, label);
+            updateMetricsUI({ totalReturn: portfolioChange, ytdReturn: null, maxDrawdown: Math.min(0, -portfolioChange), sharpe: null });
+
+            // Update constituents grid with live data
+            updateConstituentsUI1D(tickerChanges, liveQuotes);
+
+            document.getElementById('range-label').textContent = '(1 Day - Live)';
+        }
+
+        function updateConstituentsUI1D(tickerChanges, liveQuotes) {
+            const grid = document.getElementById('constituents-grid');
+
+            // Sort by contribution
+            tickerChanges.sort((a, b) => b.contribution - a.contribution);
+
+            let html = '';
+            for (const t of tickerChanges) {
+                const changeClass = t.change >= 0 ? 'positive' : 'negative';
+                const contribClass = t.contribution >= 0 ? 'positive' : 'negative';
+                const typeLabel = t.type && t.type !== 'stock' ? t.type.toUpperCase() : 'STOCK';
+                html += `
+                    <div class="constituent-card">
+                        <div class="constituent-ticker">${t.ticker}</div>
+                        <span class="constituent-type">${typeLabel}</span>
+                        <div class="constituent-return ${changeClass}">${t.change >= 0 ? '+' : ''}${t.change.toFixed(2)}%</div>
+                        <div class="constituent-details">
+                            <span>Weight: ${t.weight.toFixed(1)}%</span>
+                            <span class="${contribClass}">Contrib: ${t.contribution >= 0 ? '+' : ''}${t.contribution.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                `;
+            }
+            grid.innerHTML = html || '<div class="no-data">No live data available</div>';
+        }
+
+        function updateChartForCustomRange(startDate, endDate) {
+            if (!fullPerformanceData) return;
+
+            const data = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            const { portfolioValues, spyValues, qqqValues, tickerPrices } = data;
+
+            // Filter to custom range
+            const filterCustom = (values) => {
+                const filtered = values.filter(v => v.date >= startDate && v.date <= endDate);
+                if (filtered.length === 0) return values;
+                const baseValue = filtered[0].value;
+                return filtered.map(v => ({ date: v.date, value: (v.value / baseValue) * 100 }));
+            };
+
+            const filteredPortfolio = filterCustom(portfolioValues);
+            const filteredSpy = filterCustom(spyValues);
+            const filteredQqq = filterCustom(qqqValues);
+
+            const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
+            renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
+            updateMetricsUI(calculateMetrics(filteredPortfolio));
+
+            // Update constituents for custom range
+            updateConstituentsUICustom(startDate, endDate, tickerPrices);
+            updateBigMovesUICustom(portfolioValues, tickerPrices, startDate, endDate);
+
+            document.getElementById('range-label').textContent = `(${startDate} to ${endDate})`;
+        }
+
+        function updateConstituentsUICustom(startDate, endDate, tickerPrices) {
+            const grid = document.getElementById('constituents-grid');
+            const riskFreeRate = 0.05;
+
+            // Determine which quarter's holdings to use
+            let activeQuarter = 'Q4-2024';
+            for (const q of QUARTER_ORDER) {
+                if (startDate >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+            }
+
+            const stockHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'stock');
+            const optionHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+            // Calculate total portfolio value
+            const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+            let totalOptionPremium = 0;
+            if (portfolioMode === 'full') {
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+                }
+            }
+            const totalValue = portfolioMode === 'full' ? totalStockValue + totalOptionPremium : totalStockValue;
+
+            const constituents = [];
+
+            // Stock contributions
+            for (const h of stockHoldings) {
+                const prices = tickerPrices[h.ticker];
+                if (!prices) continue;
+
+                const dates = Object.keys(prices).sort();
+                const datesInRange = dates.filter(d => d >= startDate && d <= endDate);
+                if (datesInRange.length < 2) continue;
+
+                const firstPrice = prices[datesInRange[0]];
+                const lastPrice = prices[datesInRange[datesInRange.length - 1]];
+                const returnPct = ((lastPrice - firstPrice) / firstPrice) * 100;
+                const weight = (h.value / totalValue) * 100;
+                const contribution = returnPct * (weight / 100);
+
+                // Get return since first held
+                let firstHeldDate = null;
+                for (const q of QUARTER_ORDER) {
+                    const held = HOLDINGS_DATA[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === 'stock');
+                    if (held) {
+                        firstHeldDate = HOLDINGS_DATA[q].reportDate;
+                        break;
+                    }
+                }
+                let stockReturn = 0;
+                if (firstHeldDate) {
+                    const datesFromPurchase = dates.filter(d => d >= firstHeldDate);
+                    if (datesFromPurchase.length >= 2) {
+                        stockReturn = ((prices[datesFromPurchase[datesFromPurchase.length - 1]] - prices[datesFromPurchase[0]]) / prices[datesFromPurchase[0]]) * 100;
+                    }
+                }
+
+                constituents.push({
+                    ticker: h.ticker,
+                    type: 'stock',
+                    weight,
+                    return: returnPct,
+                    contribution,
+                    stockReturn,
+                    firstHeldDate
+                });
+            }
+
+            // Option contributions (only in full portfolio mode)
+            if (portfolioMode === 'full') {
+                for (const h of optionHoldings) {
+                    const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
+                    const config = optionConfig[key];
+                    if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
+
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices) continue;
+
+                    const dates = Object.keys(prices).sort();
+                    const datesInRange = dates.filter(d => d >= startDate && d <= endDate);
+                    if (datesInRange.length < 2) continue;
+
+                    const startSpot = prices[datesInRange[0]];
+                    const endSpot = prices[datesInRange[datesInRange.length - 1]];
+                    const startT = yearFraction(datesInRange[0], config.expiry);
+                    const endT = yearFraction(datesInRange[datesInRange.length - 1], config.expiry);
+
+                    const startOptionPrice = blackScholes(startSpot, config.strike, startT, riskFreeRate, config.iv / 100, h.type === 'call');
+                    const endOptionPrice = blackScholes(endSpot, config.strike, endT, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                    if (startOptionPrice < 0.01) continue;
+
+                    const returnPct = ((endOptionPrice - startOptionPrice) / startOptionPrice) * 100;
+                    const weight = (config.calculatedPremium / totalValue) * 100;
+                    const contribution = returnPct * (weight / 100);
+
+                    // Get return since first held (for this option)
+                    let firstHeldDate = null;
+                    let firstHeldQuarter = null;
+                    for (const q of QUARTER_ORDER) {
+                        const held = HOLDINGS_DATA[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === h.type);
+                        if (held) {
+                            firstHeldDate = HOLDINGS_DATA[q].reportDate;
+                            firstHeldQuarter = q;
+                            break;
+                        }
+                    }
+                    let optionReturn = 0;
+                    if (firstHeldDate && firstHeldQuarter) {
+                        const datesFromPurchase = dates.filter(d => d >= firstHeldDate);
+                        if (datesFromPurchase.length >= 2) {
+                            const firstKey = getOptionKey(firstHeldQuarter, h.ticker, h.type, h.shares);
+                            const firstConfig = optionConfig[firstKey] || config;
+                            if (firstConfig?.strike && firstConfig?.expiry && firstConfig?.iv) {
+                                const firstSpot = prices[datesFromPurchase[0]];
+                                const lastSpot = prices[datesFromPurchase[datesFromPurchase.length - 1]];
+                                const firstT = yearFraction(datesFromPurchase[0], firstConfig.expiry);
+                                const lastT = yearFraction(datesFromPurchase[datesFromPurchase.length - 1], firstConfig.expiry);
+                                const firstOptionPrice = blackScholes(firstSpot, firstConfig.strike, firstT, riskFreeRate, firstConfig.iv / 100, h.type === 'call');
+                                const lastOptionPrice = blackScholes(lastSpot, firstConfig.strike, lastT, riskFreeRate, firstConfig.iv / 100, h.type === 'call');
+                                if (firstOptionPrice > 0.01) {
+                                    optionReturn = ((lastOptionPrice - firstOptionPrice) / firstOptionPrice) * 100;
+                                }
+                            }
+                        }
+                    }
+
+                    constituents.push({
+                        ticker: `${h.ticker} ${h.type.toUpperCase()}`,
+                        type: h.type,
+                        weight,
+                        return: returnPct,
+                        contribution,
+                        stockReturn: optionReturn,
+                        firstHeldDate
+                    });
+                }
+            }
+
+            constituents.sort((a, b) => b.contribution - a.contribution);
+
+            grid.innerHTML = constituents.map(c => {
+                const sinceDate = c.firstHeldDate ? c.firstHeldDate.slice(5) : '';
+                return `
+                    <div class="constituent-card">
+                        <span class="constituent-ticker">${c.ticker}</span>
+                        <span class="constituent-type">${c.type.toUpperCase()}</span>
+                        <span class="constituent-contrib ${c.contribution >= 0 ? 'positive' : 'negative'}">
+                            ${c.contribution >= 0 ? '+' : ''}${c.contribution.toFixed(2)}%
+                        </span>
+                        <span class="constituent-stock-return">
+                            (${c.stockReturn >= 0 ? '+' : ''}${c.stockReturn.toFixed(0)}% since ${sinceDate})
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateBigMovesUICustom(portfolioValues, tickerPrices, startDate, endDate) {
+            const container = document.getElementById('big-moves-container');
+            const listEl = document.getElementById('big-moves-list');
+
+            const filteredValues = portfolioValues.filter(v => v.date >= startDate && v.date <= endDate);
+            bigMoves = detectBigMoves(filteredValues, tickerPrices);
+
+            if (bigMoves.length === 0) {
+                listEl.style.display = 'none';
+                return;
+            }
+
+            listEl.style.display = 'block';
+            container.innerHTML = bigMoves.map((move, i) => `
+                <div class="big-move-item" data-index="${i}">
+                    <div class="move-indicator ${move.change >= 0 ? 'positive' : 'negative'}">
+                        ${move.change >= 0 ? '↑' : '↓'}
+                    </div>
+                    <div class="move-details">
+                        <div>${formatMoveExplanation(move)}</div>
+                        <div class="move-date">${move.startDate} → ${move.endDate}</div>
+                        <div class="move-breakdown">
+                            <div class="breakdown-header breakdown-row">
+                                <span class="breakdown-ticker">Ticker</span>
+                                <span class="breakdown-weight">Weight</span>
+                                <span class="breakdown-return">Return</span>
+                                <span class="breakdown-contrib">Contrib.</span>
+                            </div>
+                            ${move.contributions.map(c => `
+                                <div class="breakdown-row">
+                                    <span class="breakdown-ticker">${c.ticker}</span>
+                                    <span class="breakdown-weight">${c.weight.toFixed(1)}%</span>
+                                    <span class="breakdown-return">${c.stockReturn >= 0 ? '+' : ''}${c.stockReturn.toFixed(1)}%</span>
+                                    <span class="breakdown-contrib ${c.contribution >= 0 ? 'positive' : 'negative'}">${c.contribution >= 0 ? '+' : ''}${c.contribution.toFixed(2)}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <span class="expand-hint">click to expand</span>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.big-move-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    item.classList.toggle('expanded');
+                    const hint = item.querySelector('.expand-hint');
+                    hint.textContent = item.classList.contains('expanded') ? 'click to collapse' : 'click to expand';
+                });
+            });
+        }
+
+        function updateBigMovesUI(portfolioValues, tickerPrices, range) {
+            const container = document.getElementById('big-moves-container');
+            const listEl = document.getElementById('big-moves-list');
+
+            // Filter portfolio values by range first
+            const startDate = getDateRangeStart(range);
+            const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
+            const filteredValues = startStr
+                ? portfolioValues.filter(v => v.date >= startStr)
+                : portfolioValues;
+
+            bigMoves = detectBigMoves(filteredValues, tickerPrices);
+
+            if (bigMoves.length === 0) {
+                listEl.style.display = 'none';
+                return;
+            }
+
+            listEl.style.display = 'block';
+            container.innerHTML = bigMoves.map((move, i) => `
+                <div class="big-move-item" data-index="${i}">
+                    <div class="move-indicator ${move.change >= 0 ? 'positive' : 'negative'}">
+                        ${move.change >= 0 ? '↑' : '↓'}
+                    </div>
+                    <div class="move-details">
+                        <div>${formatMoveExplanation(move)}</div>
+                        <div class="move-date">${move.startDate} → ${move.endDate}</div>
+                        <div class="move-breakdown">
+                            <div class="breakdown-header breakdown-row">
+                                <span class="breakdown-ticker">Ticker</span>
+                                <span class="breakdown-weight">Weight</span>
+                                <span class="breakdown-return">Return</span>
+                                <span class="breakdown-contrib">Contrib.</span>
+                            </div>
+                            ${move.contributions.map(c => `
+                                <div class="breakdown-row">
+                                    <span class="breakdown-ticker">${c.ticker}</span>
+                                    <span class="breakdown-weight">${c.weight.toFixed(1)}%</span>
+                                    <span class="breakdown-return">${c.stockReturn >= 0 ? '+' : ''}${c.stockReturn.toFixed(1)}%</span>
+                                    <span class="breakdown-contrib ${c.contribution >= 0 ? 'positive' : 'negative'}">${c.contribution >= 0 ? '+' : ''}${c.contribution.toFixed(2)}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <span class="expand-hint">click to expand</span>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            container.querySelectorAll('.big-move-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    item.classList.toggle('expanded');
+                    const hint = item.querySelector('.expand-hint');
+                    hint.textContent = item.classList.contains('expanded') ? 'click to collapse' : 'click to expand';
+                });
+            });
+        }
+
+        function updateConstituentsUI(range, tickerPrices) {
+            const grid = document.getElementById('constituents-grid');
+            const startDate = getDateRangeStart(range);
+            const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
+            const endStr = new Date().toISOString().split('T')[0];
+            const riskFreeRate = 0.05;
+
+            // Calculate contributions across ALL quarters within the range
+            // Each quarter: contribution = weight_in_quarter * return_during_quarter
+            const tickerContributions = {}; // ticker -> { totalContribution, quarters: [...] }
+
+            for (const q of QUARTER_ORDER) {
+                const qData = HOLDINGS_DATA[q];
+                const qStart = qData.reportDate;
+
+                // Find quarter end (next quarter's reportDate or today)
+                const qIdx = QUARTER_ORDER.indexOf(q);
+                const qEnd = qIdx < QUARTER_ORDER.length - 1
+                    ? HOLDINGS_DATA[QUARTER_ORDER[qIdx + 1]].reportDate
+                    : endStr;
+
+                // Skip if quarter is outside our range
+                if (startStr && qEnd < startStr) continue;
+                if (qStart > endStr) continue;
+
+                // Effective date range for this quarter within our filter
+                const effectiveStart = startStr && startStr > qStart ? startStr : qStart;
+                const effectiveEnd = qEnd < endStr ? qEnd : endStr;
+
+                const stockHoldings = qData.holdings.filter(h => h.type === 'stock');
+                const optionHoldings = qData.holdings.filter(h => h.type === 'call' || h.type === 'put');
+
+                // Calculate total portfolio value
+                const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+                let totalOptionPremium = 0;
+                if (portfolioMode === 'full') {
+                    for (const h of optionHoldings) {
+                        const key = getOptionKey(q, h.ticker, h.type, h.shares);
+                        const config = optionConfig[key];
+                        if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+                    }
+                }
+                const totalValue = portfolioMode === 'full' ? totalStockValue + totalOptionPremium : totalStockValue;
+
+                // Stock contributions
+                for (const h of stockHoldings) {
+                    const prices = tickerPrices[h.ticker];
+                    if (!prices) continue;
+
+                    const dates = Object.keys(prices).sort();
+                    const datesInRange = dates.filter(d => d >= effectiveStart && d <= effectiveEnd);
+                    if (datesInRange.length < 2) continue;
+
+                    const firstPrice = prices[datesInRange[0]];
+                    const lastPrice = prices[datesInRange[datesInRange.length - 1]];
+                    const returnPct = ((lastPrice - firstPrice) / firstPrice) * 100;
+                    const weight = h.value / totalValue;
+                    const contribution = returnPct * weight;
+
+                    if (!tickerContributions[h.ticker]) {
+                        tickerContributions[h.ticker] = {
+                            ticker: h.ticker,
+                            type: 'stock',
+                            totalContribution: 0,
+                            totalReturn: 0,
+                            quarters: []
+                        };
+                    }
+
+                    tickerContributions[h.ticker].totalContribution += contribution;
+                    tickerContributions[h.ticker].quarters.push({
+                        quarter: q,
+                        weight: weight * 100,
+                        return: returnPct,
+                        contribution: contribution
+                    });
+                }
+
+                // Option contributions (only in full portfolio mode)
+                if (portfolioMode === 'full') {
+                    for (const h of optionHoldings) {
+                        const key = getOptionKey(q, h.ticker, h.type, h.shares);
+                        const config = optionConfig[key];
+                        if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
+
+                        const prices = tickerPrices[h.ticker];
+                        if (!prices) continue;
+
+                        const dates = Object.keys(prices).sort();
+                        const datesInRange = dates.filter(d => d >= effectiveStart && d <= effectiveEnd);
+                        if (datesInRange.length < 2) continue;
+
+                        const startSpot = prices[datesInRange[0]];
+                        const endSpot = prices[datesInRange[datesInRange.length - 1]];
+                        const startT = yearFraction(datesInRange[0], config.expiry);
+                        const endT = yearFraction(datesInRange[datesInRange.length - 1], config.expiry);
+
+                        const startOptionPrice = blackScholes(startSpot, config.strike, startT, riskFreeRate, config.iv / 100, h.type === 'call');
+                        const endOptionPrice = blackScholes(endSpot, config.strike, endT, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                        if (startOptionPrice < 0.01) continue;
+
+                        const returnPct = ((endOptionPrice - startOptionPrice) / startOptionPrice) * 100;
+                        const weight = config.calculatedPremium / totalValue;
+                        const contribution = returnPct * weight;
+
+                        const optionKey = `${h.ticker} ${h.type.toUpperCase()}`;
+                        if (!tickerContributions[optionKey]) {
+                            tickerContributions[optionKey] = {
+                                ticker: optionKey,
+                                type: h.type,
+                                totalContribution: 0,
+                                totalReturn: 0,
+                                quarters: []
+                            };
+                        }
+
+                        tickerContributions[optionKey].totalContribution += contribution;
+                        tickerContributions[optionKey].quarters.push({
+                            quarter: q,
+                            weight: weight * 100,
+                            return: returnPct,
+                            contribution: contribution
+                        });
+                    }
+                }
+            }
+
+            // Calculate return since first purchase (first quarter they held it)
+            for (const tickerKey of Object.keys(tickerContributions)) {
+                const contrib = tickerContributions[tickerKey];
+                const isOption = contrib.type === 'call' || contrib.type === 'put';
+                const baseTicker = isOption ? tickerKey.split(' ')[0] : tickerKey;
+
+                const prices = tickerPrices[baseTicker];
+                if (!prices) continue;
+
+                // Find first quarter they held this position
+                let firstHeldDate = null;
+                let firstHeldQuarter = null;
+                for (const q of QUARTER_ORDER) {
+                    let held = false;
+                    if (isOption) {
+                        held = HOLDINGS_DATA[q].holdings.some(h => h.ticker === baseTicker && h.type === contrib.type);
+                    } else {
+                        held = HOLDINGS_DATA[q].holdings.some(h => h.ticker === baseTicker && h.type === 'stock');
+                    }
+                    if (held) {
+                        firstHeldDate = HOLDINGS_DATA[q].reportDate;
+                        firstHeldQuarter = q;
+                        break;
+                    }
+                }
+
+                if (!firstHeldDate) continue;
+
+                const dates = Object.keys(prices).sort();
+                const datesFromPurchase = dates.filter(d => d >= firstHeldDate);
+                if (datesFromPurchase.length >= 2) {
+                    if (isOption) {
+                        // For options, calculate Black-Scholes return
+                        const h = HOLDINGS_DATA[firstHeldQuarter].holdings.find(h => h.ticker === baseTicker && h.type === contrib.type);
+                        if (h) {
+                            const key = getOptionKey(firstHeldQuarter, h.ticker, h.type, h.shares);
+                            const config = optionConfig[key];
+                            if (config?.strike && config?.expiry && config?.iv) {
+                                const startSpot = prices[datesFromPurchase[0]];
+                                const endSpot = prices[datesFromPurchase[datesFromPurchase.length - 1]];
+                                const startT = yearFraction(datesFromPurchase[0], config.expiry);
+                                const endT = yearFraction(datesFromPurchase[datesFromPurchase.length - 1], config.expiry);
+
+                                const startOptionPrice = blackScholes(startSpot, config.strike, startT, riskFreeRate, config.iv / 100, h.type === 'call');
+                                const endOptionPrice = blackScholes(endSpot, config.strike, endT, riskFreeRate, config.iv / 100, h.type === 'call');
+
+                                if (startOptionPrice > 0.01) {
+                                    tickerContributions[tickerKey].stockReturn = ((endOptionPrice - startOptionPrice) / startOptionPrice) * 100;
+                                    tickerContributions[tickerKey].firstHeldDate = firstHeldDate;
+                                }
+                            }
+                        }
+                    } else {
+                        // For stocks, calculate stock return
+                        const firstPrice = prices[datesFromPurchase[0]];
+                        const lastPrice = prices[datesFromPurchase[datesFromPurchase.length - 1]];
+                        tickerContributions[tickerKey].stockReturn = ((lastPrice - firstPrice) / firstPrice) * 100;
+                        tickerContributions[tickerKey].firstHeldDate = firstHeldDate;
+                    }
+                }
+            }
+
+            // Convert to array
+            const constituents = Object.values(tickerContributions).map(c => ({
+                ticker: c.ticker,
+                type: c.type,
+                contribution: c.totalContribution,
+                stockReturn: c.stockReturn || 0,
+                firstHeldDate: c.firstHeldDate,
+                quarters: c.quarters
+            }));
+
+            // Sort by contribution descending
+            constituents.sort((a, b) => b.contribution - a.contribution);
+
+            grid.innerHTML = constituents.map(c => {
+                const sinceDate = c.firstHeldDate ? c.firstHeldDate.slice(5) : '';
+
+                const quarterBreakdown = c.quarters.map(q => `
+                    <div class="constituent-quarter-row">
+                        <span class="constituent-quarter-label">${q.quarter.replace('-', ' ')}</span>
+                        <span class="constituent-quarter-calc">
+                            ${q.return >= 0 ? '+' : ''}${q.return.toFixed(1)}% at ${q.weight.toFixed(0)}% weight →
+                        </span>
+                        <span class="constituent-quarter-result ${q.contribution >= 0 ? 'positive' : 'negative'}">
+                            ${q.contribution >= 0 ? '+' : ''}${q.contribution.toFixed(2)}%
+                        </span>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="constituent-card">
+                        <span class="constituent-ticker">${c.ticker}</span>
+                        <span class="constituent-type">${c.type.toUpperCase()}</span>
+                        <span class="constituent-contrib ${c.contribution >= 0 ? 'positive' : 'negative'}">
+                            ${c.contribution >= 0 ? '+' : ''}${c.contribution.toFixed(2)}%
+                        </span>
+                        <span class="constituent-stock-return">
+                            (${c.stockReturn >= 0 ? '+' : ''}${c.stockReturn.toFixed(0)}% since ${sinceDate})
+                        </span>
+                        <div class="constituent-breakdown">
+                            ${quarterBreakdown}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers for expand/collapse
+            grid.querySelectorAll('.constituent-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const wasExpanded = card.classList.contains('expanded');
+                    // Collapse all
+                    grid.querySelectorAll('.constituent-card').forEach(c => c.classList.remove('expanded'));
+                    // Expand clicked if wasn't expanded
+                    if (!wasExpanded) {
+                        card.classList.add('expanded');
+                    }
+                });
+            });
+        }
+
+        // ============================================
+        // INIT
+        // ============================================
+        function updateQuarterTabs() {
+            const tabsContainer = document.getElementById('quarter-tabs');
+            tabsContainer.innerHTML = QUARTER_ORDER.map(q => {
+                const label = q.replace('-', ' ');
+                const isActive = q === currentQuarter;
+                return `<button class="tab ${isActive ? 'active' : ''}" data-quarter="${q}">${label}</button>`;
+            }).join('');
+        }
+
+        async function init() {
+            // Load any stored holdings data first
+            updateHoldingsDataFromStorage();
+            updateDataStatusUI();
+
+            // Ensure currentQuarter is valid
+            if (!QUARTER_ORDER.includes(currentQuarter)) {
+                currentQuarter = QUARTER_ORDER[QUARTER_ORDER.length - 1];
+            }
+
+            // Update quarter tabs to reflect current data
+            updateQuarterTabs();
+
+            await renderOptionsConfig();
+            updateHoldingsUI(currentQuarter);
+            updateCalculateButton();
+
+            // Add 13F update button listener
+            document.getElementById('check-13f-btn').addEventListener('click', fetch13FData);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
