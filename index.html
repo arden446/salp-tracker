@@ -1738,7 +1738,14 @@
                     // Get values handling different possible tag names/namespaces
                     const getText = (names) => {
                         for (const name of names) {
-                            const el = table.querySelector(name) || table.getElementsByTagName(name)[0];
+                            // Use getElementsByTagName first (handles namespaces better)
+                            // Then try querySelector with escaped colons
+                            let el = table.getElementsByTagName(name)[0];
+                            if (!el) {
+                                try {
+                                    el = table.querySelector(name.replace(/:/g, '\\:'));
+                                } catch (e) { /* ignore selector errors */ }
+                            }
                             if (el?.textContent) return el.textContent.trim();
                         }
                         return '';
