@@ -1749,6 +1749,7 @@
                     const cusip = getText(['cusip', 'ns1:cusip']);
                     const valueStr = getText(['value', 'ns1:value']);
                     const sharesStr = getText(['sshPrnamt', 'ns1:sshPrnamt', 'shrsOrPrnAmt sshPrnamt']);
+                    const putCall = getText(['putCall', 'ns1:putCall']);
 
                     // Try alternate structure for shares
                     let shares = parseInt(sharesStr.replace(/,/g, ''), 10);
@@ -1795,15 +1796,22 @@
                         }
                     }
 
+                    // Determine type: check putCall field first (most reliable), then titleOfClass
                     let type = 'stock';
-                    if (titleUpper.includes('CALL')) type = 'call';
-                    else if (titleUpper.includes('PUT')) type = 'put';
+                    const putCallUpper = putCall.toUpperCase();
+                    if (putCallUpper === 'CALL' || titleUpper.includes('CALL')) {
+                        type = 'call';
+                    } else if (putCallUpper === 'PUT' || titleUpper.includes('PUT')) {
+                        type = 'put';
+                    }
 
                     // Add name suffix for options with same ticker
                     let name = nameOfIssuer;
                     if (type !== 'stock') {
                         name = `${nameOfIssuer} (${type.charAt(0).toUpperCase() + type.slice(1)})`;
                     }
+
+                    console.log(`Parsed: ${ticker} - ${titleOfClass} - putCall: ${putCall} -> type: ${type}`);
 
                     holdings.push({
                         ticker,
