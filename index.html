@@ -1552,10 +1552,17 @@
             try {
                 // Fetch submissions list from SEC EDGAR
                 const submissionsUrl = `https://data.sec.gov/submissions/CIK${SEC_CIK}.json`;
-                const proxies = [
+                const workerUrl = getWorkerUrl();
+
+                // Build proxy list - worker first if configured, then public fallbacks
+                const proxies = [];
+                if (workerUrl) {
+                    proxies.push(url => `${workerUrl}?url=${encodeURIComponent(url)}`);
+                }
+                proxies.push(
                     url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
                     url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                ];
+                );
 
                 let submissions = null;
                 for (const makeProxy of proxies) {
