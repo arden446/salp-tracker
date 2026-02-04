@@ -961,14 +961,205 @@
             .option-input { width: 65px; font-size: 0.8rem; }
             .constituents-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* Settings Panel */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .settings-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .settings-btn:hover {
+            border-color: var(--charcoal-light);
+            color: var(--charcoal);
+        }
+
+        .settings-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .settings-overlay.active {
+            display: flex;
+        }
+
+        .settings-modal {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-header h3 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1.25rem;
+            font-weight: 400;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--charcoal-light);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .settings-close:hover {
+            color: var(--charcoal);
+        }
+
+        .settings-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-section label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .settings-section .hint {
+            font-size: 0.8rem;
+            color: var(--charcoal-light);
+            margin-bottom: 0.75rem;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .settings-input::placeholder {
+            color: #aaa;
+        }
+
+        .settings-status {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+        }
+
+        .settings-status.success {
+            background: #f0fdf4;
+            color: var(--green);
+        }
+
+        .settings-status.error {
+            background: #fef2f2;
+            color: var(--red);
+        }
+
+        .settings-status.info {
+            background: #f0f9ff;
+            color: var(--accent);
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .settings-actions .btn {
+            flex: 1;
+        }
+
+        .settings-actions .btn-secondary {
+            flex: 0;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Situational Awareness LP</h1>
-            <p class="subtitle">Portfolio Performance Tracker &middot; CIK 0002045724</p>
+            <div class="header-row">
+                <div>
+                    <h1>Situational Awareness LP</h1>
+                    <p class="subtitle">Portfolio Performance Tracker &middot; CIK 0002045724</p>
+                </div>
+                <button class="settings-btn" id="settings-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Settings
+                </button>
+            </div>
         </header>
+
+        <!-- Settings Modal -->
+        <div class="settings-overlay" id="settings-overlay">
+            <div class="settings-modal">
+                <div class="settings-header">
+                    <h3>Settings</h3>
+                    <button class="settings-close" id="settings-close">&times;</button>
+                </div>
+                <div class="settings-section">
+                    <label for="worker-url">CORS Proxy Worker URL</label>
+                    <p class="hint">Deploy your own Cloudflare Worker for reliable price fetching. See <code>worker.js</code> and <code>wrangler.toml</code> in the repo.</p>
+                    <input type="text" class="settings-input" id="worker-url" placeholder="https://yahoo-finance-proxy.YOUR_SUBDOMAIN.workers.dev">
+                    <div class="settings-status" id="worker-status" style="display: none;"></div>
+                </div>
+                <div class="settings-actions">
+                    <button class="btn" id="save-worker-url">Save</button>
+                    <button class="btn-secondary" id="test-worker-url">Test</button>
+                    <button class="btn-secondary" id="clear-worker-url">Clear</button>
+                </div>
+            </div>
+        </div>
 
         <section id="data-section">
             <h2 class="section-title">13F Data</h2>
@@ -1749,6 +1940,21 @@
         // ============================================
         // PRICE & IV FETCHING
         // ============================================
+
+        // Get worker URL from localStorage (user configures via Settings)
+        function getWorkerUrl() {
+            return localStorage.getItem('sa-tracker-worker-url') || null;
+        }
+
+        function setWorkerUrl(url) {
+            if (url) {
+                localStorage.setItem('sa-tracker-worker-url', url.trim());
+            } else {
+                localStorage.removeItem('sa-tracker-worker-url');
+            }
+        }
+
+        // Fallback public CORS proxies (unreliable, used only if no worker configured)
         const CORS_PROXIES = [
             url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
             url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
@@ -1757,6 +1963,24 @@
         ];
 
         async function fetchWithRetry(url, retries = 2) {
+            const workerUrl = getWorkerUrl();
+
+            // Try worker first if configured
+            if (workerUrl) {
+                try {
+                    const proxyUrl = `${workerUrl}?url=${encodeURIComponent(url)}`;
+                    const res = await fetch(proxyUrl, {
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (res.ok) {
+                        return res.json();
+                    }
+                } catch (e) {
+                    console.warn('Worker fetch failed, falling back to public proxies:', e.message);
+                }
+            }
+
+            // Fallback to public proxies
             for (const makeProxy of CORS_PROXIES) {
                 for (let attempt = 0; attempt <= retries; attempt++) {
                     try {
@@ -1783,6 +2007,23 @@
                 }
             }
             return null;
+        }
+
+        // Test worker URL by fetching a known ticker
+        async function testWorkerUrl(url) {
+            const testUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=1d';
+            const proxyUrl = `${url}?url=${encodeURIComponent(testUrl)}`;
+            const res = await fetch(proxyUrl, {
+                signal: AbortSignal.timeout(10000)
+            });
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            const data = await res.json();
+            if (!data?.chart?.result?.[0]) {
+                throw new Error('Invalid response format');
+            }
+            return true;
         }
 
         async function fetchPrices(ticker, startDate, endDate) {
@@ -3795,6 +4036,91 @@
 
             // Add 13F update button listener
             document.getElementById('check-13f-btn').addEventListener('click', fetch13FData);
+
+            // Settings modal handlers
+            initSettingsModal();
+        }
+
+        function initSettingsModal() {
+            const overlay = document.getElementById('settings-overlay');
+            const settingsBtn = document.getElementById('settings-btn');
+            const closeBtn = document.getElementById('settings-close');
+            const workerInput = document.getElementById('worker-url');
+            const statusEl = document.getElementById('worker-status');
+            const saveBtn = document.getElementById('save-worker-url');
+            const testBtn = document.getElementById('test-worker-url');
+            const clearBtn = document.getElementById('clear-worker-url');
+
+            // Load saved worker URL
+            const savedUrl = getWorkerUrl();
+            if (savedUrl) {
+                workerInput.value = savedUrl;
+            }
+
+            function showStatus(message, type) {
+                statusEl.textContent = message;
+                statusEl.className = 'settings-status ' + type;
+                statusEl.style.display = 'block';
+            }
+
+            function hideStatus() {
+                statusEl.style.display = 'none';
+            }
+
+            settingsBtn.addEventListener('click', () => {
+                overlay.classList.add('active');
+                hideStatus();
+            });
+
+            closeBtn.addEventListener('click', () => {
+                overlay.classList.remove('active');
+            });
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const url = workerInput.value.trim();
+                if (url && !url.startsWith('https://')) {
+                    showStatus('URL must start with https://', 'error');
+                    return;
+                }
+                setWorkerUrl(url || null);
+                showStatus(url ? 'Worker URL saved!' : 'Using public proxies (fallback)', 'success');
+            });
+
+            testBtn.addEventListener('click', async () => {
+                const url = workerInput.value.trim();
+                if (!url) {
+                    showStatus('Enter a worker URL to test', 'error');
+                    return;
+                }
+                if (!url.startsWith('https://')) {
+                    showStatus('URL must start with https://', 'error');
+                    return;
+                }
+
+                showStatus('Testing...', 'info');
+                testBtn.disabled = true;
+
+                try {
+                    await testWorkerUrl(url);
+                    showStatus('Worker is working correctly!', 'success');
+                } catch (e) {
+                    showStatus(`Test failed: ${e.message}`, 'error');
+                } finally {
+                    testBtn.disabled = false;
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                workerInput.value = '';
+                setWorkerUrl(null);
+                showStatus('Worker URL cleared. Using public proxies.', 'info');
+            });
         }
 
         document.addEventListener('DOMContentLoaded', init);
