@@ -27,6 +27,216 @@ st.set_page_config(
 )
 
 # ============================================
+# CUSTOM STYLING
+# ============================================
+st.markdown("""
+<style>
+    /* Import fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
+
+    /* CSS Variables */
+    :root {
+        --cream: #faf8f5;
+        --cream-dark: #f0ebe3;
+        --charcoal: #1a1a1a;
+        --charcoal-light: #4a4a4a;
+        --accent: #2c5282;
+        --accent-light: #4a7ab8;
+        --green: #276749;
+        --red: #9b2c2c;
+        --border: #e2ddd5;
+        --shadow: rgba(26, 26, 26, 0.08);
+    }
+
+    /* Main container */
+    .main .block-container {
+        max-width: 1200px;
+        padding-top: 2rem;
+    }
+
+    /* Headers */
+    h1, h2, h3 {
+        font-family: 'Libre Baskerville', Georgia, serif !important;
+        font-weight: 400 !important;
+        color: var(--charcoal) !important;
+    }
+
+    h1 {
+        font-size: 2rem !important;
+        letter-spacing: -0.02em !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    /* Body text */
+    p, span, div, label {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    /* Metric cards */
+    [data-testid="metric-container"] {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 1px 3px var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    [data-testid="metric-container"] label {
+        font-size: 0.75rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--charcoal-light) !important;
+    }
+
+    [data-testid="metric-container"] [data-testid="stMetricValue"] {
+        font-family: 'Libre Baskerville', Georgia, serif !important;
+        font-size: 1.5rem !important;
+        color: var(--charcoal) !important;
+    }
+
+    /* Positive/negative colors for metrics */
+    [data-testid="metric-container"] [data-testid="stMetricDelta"] svg {
+        display: none;
+    }
+
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
+        background: var(--cream-dark);
+        border-radius: 8px;
+        padding: 4px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border-radius: 6px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        color: var(--charcoal-light);
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: white !important;
+        color: var(--charcoal) !important;
+        box-shadow: 0 1px 3px var(--shadow);
+    }
+
+    /* Buttons */
+    .stButton > button {
+        background: var(--accent) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 1.5rem !important;
+        font-weight: 500 !important;
+        transition: background 0.2s !important;
+    }
+
+    .stButton > button:hover {
+        background: var(--accent-light) !important;
+    }
+
+    /* Secondary buttons in sidebar */
+    .stSidebar .stButton > button {
+        background: white !important;
+        color: var(--accent) !important;
+        border: 1px solid var(--accent) !important;
+    }
+
+    .stSidebar .stButton > button:hover {
+        background: var(--accent) !important;
+        color: white !important;
+    }
+
+    /* Data frames / tables */
+    .stDataFrame {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px var(--shadow);
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: white;
+        border-right: 1px solid var(--border);
+    }
+
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        font-size: 1rem !important;
+    }
+
+    /* Info/warning boxes */
+    .stAlert {
+        border-radius: 8px;
+    }
+
+    /* Plotly chart container */
+    .stPlotlyChart {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    /* Dividers */
+    hr {
+        border-color: var(--border) !important;
+    }
+
+    /* Caption text */
+    .stCaption {
+        color: var(--charcoal-light) !important;
+    }
+
+    /* Select boxes */
+    .stSelectbox > div > div {
+        background: white;
+        border-color: var(--border);
+        border-radius: 6px;
+    }
+
+    /* Number inputs */
+    .stNumberInput > div > div > input {
+        border-radius: 6px;
+        border-color: var(--border);
+    }
+
+    /* Radio buttons */
+    .stRadio > label {
+        font-weight: 500;
+    }
+
+    /* Custom weight card styling */
+    .weight-card {
+        background: var(--cream-dark);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        margin-bottom: 0.5rem;
+    }
+
+    .weight-card.call {
+        border-left-color: var(--green);
+    }
+
+    .weight-card.put {
+        border-left-color: var(--red);
+    }
+
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Positive/negative value colors */
+    .positive { color: var(--green) !important; }
+    .negative { color: var(--red) !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================
 # CONSTANTS & DATA
 # ============================================
 SEC_CIK = "0002045724"
@@ -881,8 +1091,17 @@ def render_holdings_table(quarter, holdings_data, option_config):
 def main():
     init_session_state()
 
-    st.title("📈 Situational Awareness LP")
-    st.caption("Portfolio Performance Tracker · CIK 0002045724")
+    # Custom header
+    st.markdown("""
+    <div style="padding: 1rem 0 1.5rem; border-bottom: 1px solid #e2ddd5; margin-bottom: 1.5rem;">
+        <h1 style="font-family: 'Libre Baskerville', Georgia, serif; font-size: 2rem; font-weight: 400; letter-spacing: -0.02em; margin: 0 0 0.25rem 0; color: #1a1a1a;">
+            Situational Awareness LP
+        </h1>
+        <p style="font-size: 0.9rem; color: #4a4a4a; margin: 0;">
+            Portfolio Performance Tracker · CIK 0002045724
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Sidebar
     with st.sidebar:
@@ -1066,20 +1285,41 @@ def main():
                         mode
                     )
 
-                    st.subheader(f"Portfolio Weights - {clicked_date}")
-                    st.caption(f"Quarter: {weights_data['quarter']} | Total Value: {format_currency(weights_data['total_value'])}")
+                    # Weights panel with custom styling
+                    st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(26,26,26,0.08); margin: 1rem 0; border-left: 4px solid #2c5282;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-family: 'Libre Baskerville', Georgia, serif; font-size: 1rem; margin: 0;">
+                                Portfolio Weights <span style="font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #4a4a4a; margin-left: 0.5rem;">- {clicked_date}</span>
+                            </h3>
+                        </div>
+                        <div style="display: flex; gap: 2rem; margin-bottom: 1rem; font-size: 0.85rem; color: #4a4a4a;">
+                            <span><strong>Quarter:</strong> {weights_data['quarter'].replace('-', ' ')}</span>
+                            <span><strong>Total Value:</strong> {format_currency(weights_data['total_value'])}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem;">
+                    """, unsafe_allow_html=True)
 
-                    # Display as cards
-                    cols = st.columns(4)
-                    for i, w in enumerate(weights_data['weights']):
-                        with cols[i % 4]:
-                            type_emoji = "📈" if w['type'] == 'stock' else ("📞" if w['type'] == 'call' else "📉")
-                            st.metric(
-                                label=f"{type_emoji} {w['ticker']}",
-                                value=f"{w['weight']:.1f}%",
-                                delta=format_currency(w['value']),
-                                delta_color="off"
-                            )
+                    # Render weight cards
+                    cards_html = ""
+                    for w in weights_data['weights']:
+                        border_color = "#2c5282" if w['type'] == 'stock' else ("#276749" if w['type'] == 'call' else "#9b2c2c")
+                        type_badge = ""
+                        if w['type'] != 'stock':
+                            badge_bg = "#276749" if w['type'] == 'call' else "#9b2c2c"
+                            type_badge = f'<span style="font-size: 0.65rem; text-transform: uppercase; padding: 0.1rem 0.3rem; border-radius: 3px; background: {badge_bg}; color: white; margin-left: 0.5rem;">{w["type"]}</span>'
+
+                        cards_html += f"""
+                        <div style="background: #f0ebe3; border-radius: 6px; padding: 0.75rem 1rem; border-left: 3px solid {border_color};">
+                            <div style="font-weight: 600; font-size: 0.9rem; color: #2c5282; display: flex; align-items: center;">
+                                {w['ticker']}{type_badge}
+                            </div>
+                            <div style="font-size: 1.1rem; font-weight: 600; color: #1a1a1a; margin-top: 0.25rem;">{w['weight']:.1f}%</div>
+                            <div style="font-size: 0.75rem; color: #4a4a4a;">{format_currency(w['value'])}</div>
+                        </div>
+                        """
+
+                    st.markdown(cards_html + "</div></div>", unsafe_allow_html=True)
 
             # Metrics
             metrics = calculate_metrics(filtered_portfolio)
