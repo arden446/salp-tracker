@@ -1120,6 +1120,88 @@
             flex: 0;
             white-space: nowrap;
         }
+
+        /* Non-Equity Securities Review */
+        #non-equity-section {
+            display: none;
+        }
+
+        .non-equity-alert {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .non-equity-alert strong {
+            color: #92400e;
+        }
+
+        .non-equity-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .non-equity-table th,
+        .non-equity-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .non-equity-table th {
+            background: var(--cream-dark);
+            font-weight: 600;
+        }
+
+        .non-equity-table .cusip {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--charcoal-light);
+        }
+
+        .non-equity-table select {
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            background: white;
+        }
+
+        .non-equity-table .convert-options {
+            display: none;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: var(--cream-dark);
+            border-radius: 4px;
+        }
+
+        .non-equity-table .convert-options.visible {
+            display: block;
+        }
+
+        .non-equity-table .convert-options label {
+            display: block;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            color: var(--charcoal-light);
+        }
+
+        .non-equity-table .convert-options input {
+            width: 80px;
+            padding: 0.3rem 0.4rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+
+        .non-equity-save-row {
+            margin-top: 1rem;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -1172,6 +1254,32 @@
                     <div class="update-spinner" id="update-spinner"></div>
                     <button class="btn-secondary" id="check-13f-btn">Check for Updates</button>
                 </div>
+            </div>
+        </section>
+
+        <section id="non-equity-section">
+            <h2 class="section-title">Non-Equity Securities</h2>
+            <div class="non-equity-alert">
+                <strong>Review Required:</strong> The following securities were detected as non-equity (convertible notes, bonds, etc.).
+                Choose how to handle each one, or exclude them from calculations.
+            </div>
+            <div class="table-container">
+                <table class="non-equity-table">
+                    <thead>
+                        <tr>
+                            <th>Quarter</th>
+                            <th>Issuer</th>
+                            <th>Title</th>
+                            <th>CUSIP</th>
+                            <th>Reported Value</th>
+                            <th>Treatment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="non-equity-tbody"></tbody>
+                </table>
+            </div>
+            <div class="non-equity-save-row">
+                <button class="btn" id="save-non-equity-btn">Save & Recalculate</button>
             </div>
         </section>
 
@@ -1607,23 +1715,32 @@
 
                 // Parse each filing
                 const newHoldings = {};
+                const allNonEquity = {};
                 let parsed = 0;
 
                 for (const filing of thirteenFFilings) {
                     try {
-                        const holdings = await parse13FFiling(filing, proxies);
-                        if (holdings && holdings.length > 0) {
+                        const result = await parse13FFiling(filing, proxies);
+                        if (result) {
                             const quarter = getQuarterFromDate(filing.reportDate);
                             const periodDates = getQuarterPeriod(quarter);
 
-                            newHoldings[quarter] = {
-                                reportDate: filing.reportDate,
-                                filedDate: filing.filedDate,
-                                periodStart: periodDates.start,
-                                periodEnd: periodDates.end,
-                                holdings: holdings
-                            };
-                            parsed++;
+                            if (result.holdings && result.holdings.length > 0) {
+                                newHoldings[quarter] = {
+                                    reportDate: filing.reportDate,
+                                    filedDate: filing.filedDate,
+                                    periodStart: periodDates.start,
+                                    periodEnd: periodDates.end,
+                                    holdings: result.holdings
+                                };
+                                parsed++;
+                            }
+
+                            // Collect non-equity securities
+                            if (result.nonEquitySecurities && result.nonEquitySecurities.length > 0) {
+                                if (!allNonEquity[quarter]) allNonEquity[quarter] = [];
+                                allNonEquity[quarter].push(...result.nonEquitySecurities);
+                            }
                         }
                     } catch (e) {
                         console.warn(`Failed to parse filing ${filing.accession}:`, e);
@@ -1635,6 +1752,12 @@
 
                 if (parsed === 0) {
                     throw new Error('Could not parse any filings');
+                }
+
+                // Save non-equity securities for user review
+                if (Object.keys(allNonEquity).length > 0) {
+                    saveNonEquitySecurities(allNonEquity);
+                    renderNonEquitySection();
                 }
 
                 // Merge with existing data and save
@@ -1731,6 +1854,29 @@
             return parseInfoTableXML(xmlContent);
         }
 
+        // Check if a security is non-equity based on title and CUSIP
+        function isNonEquitySecurity(titleOfClass, cusip) {
+            const titleUpper = titleOfClass.toUpperCase();
+
+            // Check 1: Title contains bond/note keywords
+            if (titleUpper.includes('NOTE') || titleUpper.includes('BOND') ||
+                titleUpper.includes('CONVERT') || titleUpper.includes('DEBT') ||
+                titleUpper.includes('%') || titleUpper.includes('SENIOR') ||
+                titleUpper.includes('SUBORDINAT') || titleUpper.includes('DEBENTURE')) {
+                return 'title';
+            }
+
+            // Check 2: CUSIP format - bonds typically have letters in positions 7-8
+            if (cusip && cusip.length >= 8) {
+                const issueType = cusip.substring(6, 8);
+                if (/[A-Za-z]/.test(issueType)) {
+                    return 'cusip';
+                }
+            }
+
+            return false;
+        }
+
         function parseInfoTableXML(xml) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, 'text/xml');
@@ -1739,6 +1885,7 @@
             const infoTables = doc.querySelectorAll('infoTable, ns1\\:infoTable, informationTable');
 
             const holdings = [];
+            const nonEquitySecurities = [];
 
             infoTables.forEach(table => {
                 try {
@@ -1789,25 +1936,20 @@
                     // Determine type (stock, call, or put)
                     const titleUpper = titleOfClass.toUpperCase();
 
-                    // Skip non-equity securities (convertible notes, bonds, etc.)
-                    // Check 1: Title contains bond/note keywords
-                    if (titleUpper.includes('NOTE') || titleUpper.includes('BOND') ||
-                        titleUpper.includes('CONVERT') || titleUpper.includes('DEBT') ||
-                        titleUpper.includes('%') || titleUpper.includes('SENIOR') ||
-                        titleUpper.includes('SUBORDINAT') || titleUpper.includes('DEBENTURE')) {
-                        console.log(`Skipping non-equity (title): ${nameOfIssuer} - ${titleOfClass}`);
+                    // Check if non-equity security
+                    const nonEquityReason = isNonEquitySecurity(titleOfClass, cusip);
+                    if (nonEquityReason) {
+                        console.log(`Non-equity detected (${nonEquityReason}): ${nameOfIssuer} - ${titleOfClass} - CUSIP: ${cusip}`);
+                        nonEquitySecurities.push({
+                            ticker,
+                            name: nameOfIssuer,
+                            titleOfClass,
+                            shares,
+                            value,
+                            cusip,
+                            reason: nonEquityReason
+                        });
                         return;
-                    }
-
-                    // Check 2: CUSIP format - bonds typically have letters in positions 7-8
-                    // Stock CUSIPs: XXXXXX10Y, XXXXXX20Y (digits in pos 7-8)
-                    // Bond CUSIPs: XXXXXXAHY, XXXXXXAB0 (letters in pos 7-8)
-                    if (cusip && cusip.length >= 8) {
-                        const issueType = cusip.substring(6, 8);
-                        if (/[A-Za-z]/.test(issueType)) {
-                            console.log(`Skipping non-equity (CUSIP ${cusip}): ${nameOfIssuer} - ${titleOfClass}`);
-                            return;
-                        }
                     }
 
                     // Determine type: check putCall field first (most reliable), then titleOfClass
@@ -1840,7 +1982,7 @@
                 }
             });
 
-            return holdings;
+            return { holdings, nonEquitySecurities };
         }
 
         function getQuarterFromDate(dateStr) {
@@ -1888,6 +2030,185 @@
                 return qa.localeCompare(qb);
             });
             localStorage.setItem('sa-tracker-quarter-order', JSON.stringify(quarters));
+        }
+
+        // Non-equity securities management
+        function saveNonEquitySecurities(data) {
+            localStorage.setItem('sa-tracker-non-equity', JSON.stringify(data));
+        }
+
+        function loadNonEquitySecurities() {
+            try {
+                const data = localStorage.getItem('sa-tracker-non-equity');
+                if (data) return JSON.parse(data);
+            } catch (e) { console.warn('Failed to load non-equity securities:', e); }
+            return {};
+        }
+
+        function getNonEquityConfig() {
+            try {
+                const data = localStorage.getItem('sa-tracker-non-equity-config');
+                if (data) return JSON.parse(data);
+            } catch (e) { console.warn('Failed to load non-equity config:', e); }
+            return {};
+        }
+
+        function saveNonEquityConfig(config) {
+            localStorage.setItem('sa-tracker-non-equity-config', JSON.stringify(config));
+        }
+
+        function getNonEquityKey(quarter, cusip) {
+            return `${quarter}-${cusip}`;
+        }
+
+        function renderNonEquitySection() {
+            const nonEquity = loadNonEquitySecurities();
+            const config = getNonEquityConfig();
+            const tbody = document.getElementById('non-equity-tbody');
+            const section = document.getElementById('non-equity-section');
+
+            if (!nonEquity || Object.keys(nonEquity).length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+
+            const rows = [];
+            for (const [quarter, securities] of Object.entries(nonEquity)) {
+                for (const sec of securities) {
+                    const key = getNonEquityKey(quarter, sec.cusip);
+                    const cfg = config[key] || { treatment: 'exclude' };
+                    rows.push({ quarter, ...sec, key, cfg });
+                }
+            }
+
+            // Sort by quarter then value
+            rows.sort((a, b) => {
+                if (a.quarter !== b.quarter) return a.quarter.localeCompare(b.quarter);
+                return b.value - a.value;
+            });
+
+            tbody.innerHTML = rows.map(r => `
+                <tr data-key="${r.key}">
+                    <td>${r.quarter}</td>
+                    <td>${r.name}</td>
+                    <td>${r.titleOfClass}</td>
+                    <td class="cusip">${r.cusip}</td>
+                    <td class="number">${formatCurrency(r.value)}</td>
+                    <td>
+                        <select class="non-equity-treatment" data-key="${r.key}" data-ticker="${r.ticker}" data-shares="${r.shares}" data-value="${r.value}">
+                            <option value="exclude" ${r.cfg.treatment === 'exclude' ? 'selected' : ''}>Exclude</option>
+                            <option value="equity" ${r.cfg.treatment === 'equity' ? 'selected' : ''}>Treat as Equity</option>
+                            <option value="convertible" ${r.cfg.treatment === 'convertible' ? 'selected' : ''}>Treat as Convertible</option>
+                        </select>
+                        <div class="convert-options ${r.cfg.treatment === 'convertible' ? 'visible' : ''}" data-key="${r.key}">
+                            <label>Conversion Price: $<input type="number" class="convert-price" value="${r.cfg.conversionPrice || ''}" placeholder="e.g. 25"></label>
+                            <label>Expiry: <input type="date" class="convert-expiry" value="${r.cfg.expiry || ''}"></label>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Add event listeners for treatment changes
+            tbody.querySelectorAll('.non-equity-treatment').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const key = e.target.dataset.key;
+                    const convertOpts = tbody.querySelector(`.convert-options[data-key="${key}"]`);
+                    if (e.target.value === 'convertible') {
+                        convertOpts.classList.add('visible');
+                    } else {
+                        convertOpts.classList.remove('visible');
+                    }
+                });
+            });
+        }
+
+        function applyNonEquityConfig() {
+            const tbody = document.getElementById('non-equity-tbody');
+            const config = {};
+
+            tbody.querySelectorAll('tr[data-key]').forEach(row => {
+                const key = row.dataset.key;
+                const select = row.querySelector('.non-equity-treatment');
+                const treatment = select.value;
+                const ticker = select.dataset.ticker;
+                const shares = parseInt(select.dataset.shares, 10);
+                const value = parseInt(select.dataset.value, 10);
+
+                const cfg = { treatment, ticker, shares, value };
+
+                if (treatment === 'convertible') {
+                    const priceInput = row.querySelector('.convert-price');
+                    const expiryInput = row.querySelector('.convert-expiry');
+                    cfg.conversionPrice = parseFloat(priceInput.value) || null;
+                    cfg.expiry = expiryInput.value || null;
+                }
+
+                config[key] = cfg;
+            });
+
+            saveNonEquityConfig(config);
+
+            // Apply to holdings data
+            applyNonEquityToHoldings();
+
+            // Clear performance cache
+            fullPerformanceData = null;
+            equitiesOnlyData = null;
+            priceCache = {};
+
+            alert('Non-equity configuration saved. Click "Calculate Performance" to see updated results.');
+        }
+
+        function applyNonEquityToHoldings() {
+            const config = getNonEquityConfig();
+            const nonEquity = loadNonEquitySecurities();
+
+            for (const [quarter, securities] of Object.entries(nonEquity)) {
+                if (!HOLDINGS_DATA[quarter]) continue;
+
+                for (const sec of securities) {
+                    const key = getNonEquityKey(quarter, sec.cusip);
+                    const cfg = config[key];
+
+                    if (!cfg || cfg.treatment === 'exclude') continue;
+
+                    // Remove any existing entry with same CUSIP
+                    HOLDINGS_DATA[quarter].holdings = HOLDINGS_DATA[quarter].holdings.filter(
+                        h => h.cusip !== sec.cusip
+                    );
+
+                    if (cfg.treatment === 'equity') {
+                        // Add as stock position
+                        HOLDINGS_DATA[quarter].holdings.push({
+                            ticker: sec.ticker,
+                            name: sec.name,
+                            shares: sec.shares,
+                            value: sec.value,
+                            type: 'stock',
+                            cusip: sec.cusip,
+                            isNonEquity: true
+                        });
+                    } else if (cfg.treatment === 'convertible' && cfg.conversionPrice && cfg.expiry) {
+                        // Add as call option (convertible to equity)
+                        HOLDINGS_DATA[quarter].holdings.push({
+                            ticker: sec.ticker,
+                            name: `${sec.name} (Convertible)`,
+                            shares: sec.shares,
+                            value: sec.value,
+                            type: 'call',
+                            cusip: sec.cusip,
+                            isNonEquity: true,
+                            strike: cfg.conversionPrice,
+                            expiry: cfg.expiry
+                        });
+                    }
+                }
+            }
+
+            // Save updated holdings
+            saveHoldingsToStorage(HOLDINGS_DATA);
         }
 
         function loadHoldingsFromStorage() {
@@ -4080,6 +4401,13 @@
 
             // Add 13F update button listener
             document.getElementById('check-13f-btn').addEventListener('click', fetch13FData);
+
+            // Non-equity securities section
+            renderNonEquitySection();
+            document.getElementById('save-non-equity-btn').addEventListener('click', applyNonEquityConfig);
+
+            // Apply any saved non-equity config on load
+            applyNonEquityToHoldings();
 
             // Settings modal handlers
             initSettingsModal();
