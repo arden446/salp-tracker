@@ -3640,9 +3640,25 @@
                 return;
             }
 
-            const filteredPortfolio = filterDataByRange(portfolioValues, range);
-            const filteredSpy = filterDataByRange(spyValues, range);
-            const filteredQqq = filterDataByRange(qqqValues, range);
+            let filteredPortfolio = filterDataByRange(portfolioValues, range);
+            let filteredSpy = filterDataByRange(spyValues, range);
+            let filteredQqq = filterDataByRange(qqqValues, range);
+
+            // For short-term views (1W, 1M), append today's live data if available
+            if (range === '1W' || range === '1M') {
+                const todayLiveData = await getTodayLiveValue(data);
+                if (todayLiveData) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const lastDate = filteredPortfolio.length > 0 ? filteredPortfolio[filteredPortfolio.length - 1].date : null;
+
+                    // Only append if we don't already have today's data
+                    if (lastDate !== today) {
+                        filteredPortfolio = [...filteredPortfolio, { date: today, value: todayLiveData.portfolio }];
+                        filteredSpy = [...filteredSpy, { date: today, value: todayLiveData.spy }];
+                        filteredQqq = [...filteredQqq, { date: today, value: todayLiveData.qqq }];
+                    }
+                }
+            }
 
             const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
             renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
@@ -3795,6 +3811,62 @@
             updateConstituentsUI1D(tickerChanges, liveQuotes);
 
             document.getElementById('range-label').textContent = '(1 Day - Live)';
+        }
+
+        // Get today's live portfolio value (normalized to the same base as historical data)
+        async function getTodayLiveValue(data) {
+            try {
+                const { portfolioValues } = data;
+                if (!portfolioValues || portfolioValues.length === 0) return null;
+
+                // Get the last historical value as reference
+                const lastHistorical = portfolioValues[portfolioValues.length - 1];
+                const lastDate = lastHistorical.date;
+                const lastValue = lastHistorical.value;
+
+                // Determine active quarter
+                const today = new Date().toISOString().split('T')[0];
+                let activeQuarter = QUARTER_ORDER[0];
+                for (const q of QUARTER_ORDER) {
+                    if (today >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                }
+
+                const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+                const stockHoldings = holdings.filter(h => h.type === 'stock');
+                const allTickers = [...new Set([...stockHoldings.map(h => h.ticker), 'SPY', 'QQQ'])];
+
+                // Fetch live quotes
+                const liveQuotes = await fetchLiveQuotes(allTickers);
+                if (!liveQuotes) return null;
+
+                // Calculate portfolio change from last historical date to now
+                let portfolioValueYesterday = 0;
+                let portfolioValueToday = 0;
+
+                for (const h of stockHoldings) {
+                    const quote = liveQuotes[h.ticker];
+                    if (!quote) continue;
+
+                    portfolioValueYesterday += h.shares * quote.previousClose;
+                    portfolioValueToday += h.shares * quote.price;
+                }
+
+                if (portfolioValueYesterday === 0) return null;
+
+                const portfolioChangeToday = (portfolioValueToday - portfolioValueYesterday) / portfolioValueYesterday;
+                const spyChange = liveQuotes['SPY'] ? liveQuotes['SPY'].change / 100 : 0;
+                const qqqChange = liveQuotes['QQQ'] ? liveQuotes['QQQ'].change / 100 : 0;
+
+                // Apply today's change to last historical value
+                return {
+                    portfolio: lastValue * (1 + portfolioChangeToday),
+                    spy: (data.spyValues?.[data.spyValues.length - 1]?.value || 100) * (1 + spyChange),
+                    qqq: (data.qqqValues?.[data.qqqValues.length - 1]?.value || 100) * (1 + qqqChange)
+                };
+            } catch (e) {
+                console.warn('Failed to get today live value:', e);
+                return null;
+            }
         }
 
         function updateConstituentsUI1D(tickerChanges, liveQuotes) {
