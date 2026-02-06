@@ -3644,22 +3644,20 @@
             let filteredSpy = filterDataByRange(spyValues, range);
             let filteredQqq = filterDataByRange(qqqValues, range);
 
-            // For short-term views (1W, 1M), append today's live data if available
-            if (range === '1W' || range === '1M') {
-                const todayChanges = await getTodayLiveChanges(data);
-                if (todayChanges && filteredPortfolio.length > 0) {
-                    const today = new Date().toISOString().split('T')[0];
-                    const lastPortfolio = filteredPortfolio[filteredPortfolio.length - 1];
-                    const lastSpy = filteredSpy[filteredSpy.length - 1];
-                    const lastQqq = filteredQqq[filteredQqq.length - 1];
+            // Append today's live data to all views (1D is handled separately above)
+            const todayChanges = await getTodayLiveChanges(data);
+            if (todayChanges && filteredPortfolio.length > 0) {
+                const today = new Date().toISOString().split('T')[0];
+                const lastPortfolio = filteredPortfolio[filteredPortfolio.length - 1];
+                const lastSpy = filteredSpy[filteredSpy.length - 1];
+                const lastQqq = filteredQqq[filteredQqq.length - 1];
 
-                    // Only append if we don't already have today's data
-                    if (lastPortfolio.date !== today) {
-                        // Apply today's % change to the last normalized value
-                        filteredPortfolio = [...filteredPortfolio, { date: today, value: lastPortfolio.value * (1 + todayChanges.portfolio) }];
-                        filteredSpy = [...filteredSpy, { date: today, value: lastSpy.value * (1 + todayChanges.spy) }];
-                        filteredQqq = [...filteredQqq, { date: today, value: lastQqq.value * (1 + todayChanges.qqq) }];
-                    }
+                // Only append if we don't already have today's data
+                if (lastPortfolio.date !== today) {
+                    // Apply today's % change to the last normalized value
+                    filteredPortfolio = [...filteredPortfolio, { date: today, value: lastPortfolio.value * (1 + todayChanges.portfolio) }];
+                    filteredSpy = [...filteredSpy, { date: today, value: lastSpy.value * (1 + todayChanges.spy) }];
+                    filteredQqq = [...filteredQqq, { date: today, value: lastQqq.value * (1 + todayChanges.qqq) }];
                 }
             }
 
