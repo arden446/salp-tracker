@@ -3646,16 +3646,19 @@
 
             // For short-term views (1W, 1M), append today's live data if available
             if (range === '1W' || range === '1M') {
-                const todayLiveData = await getTodayLiveValue(data);
-                if (todayLiveData) {
+                const todayChanges = await getTodayLiveChanges(data);
+                if (todayChanges && filteredPortfolio.length > 0) {
                     const today = new Date().toISOString().split('T')[0];
-                    const lastDate = filteredPortfolio.length > 0 ? filteredPortfolio[filteredPortfolio.length - 1].date : null;
+                    const lastPortfolio = filteredPortfolio[filteredPortfolio.length - 1];
+                    const lastSpy = filteredSpy[filteredSpy.length - 1];
+                    const lastQqq = filteredQqq[filteredQqq.length - 1];
 
                     // Only append if we don't already have today's data
-                    if (lastDate !== today) {
-                        filteredPortfolio = [...filteredPortfolio, { date: today, value: todayLiveData.portfolio }];
-                        filteredSpy = [...filteredSpy, { date: today, value: todayLiveData.spy }];
-                        filteredQqq = [...filteredQqq, { date: today, value: todayLiveData.qqq }];
+                    if (lastPortfolio.date !== today) {
+                        // Apply today's % change to the last normalized value
+                        filteredPortfolio = [...filteredPortfolio, { date: today, value: lastPortfolio.value * (1 + todayChanges.portfolio) }];
+                        filteredSpy = [...filteredSpy, { date: today, value: lastSpy.value * (1 + todayChanges.spy) }];
+                        filteredQqq = [...filteredQqq, { date: today, value: lastQqq.value * (1 + todayChanges.qqq) }];
                     }
                 }
             }
@@ -3813,17 +3816,9 @@
             document.getElementById('range-label').textContent = '(1 Day - Live)';
         }
 
-        // Get today's live portfolio value (normalized to the same base as historical data)
-        async function getTodayLiveValue(data) {
+        // Get today's live percentage changes for portfolio and benchmarks
+        async function getTodayLiveChanges(data) {
             try {
-                const { portfolioValues } = data;
-                if (!portfolioValues || portfolioValues.length === 0) return null;
-
-                // Get the last historical value as reference
-                const lastHistorical = portfolioValues[portfolioValues.length - 1];
-                const lastDate = lastHistorical.date;
-                const lastValue = lastHistorical.value;
-
                 // Determine active quarter
                 const today = new Date().toISOString().split('T')[0];
                 let activeQuarter = QUARTER_ORDER[0];
@@ -3839,7 +3834,7 @@
                 const liveQuotes = await fetchLiveQuotes(allTickers);
                 if (!liveQuotes) return null;
 
-                // Calculate portfolio change from last historical date to now
+                // Calculate portfolio change from previous close to current price
                 let portfolioValueYesterday = 0;
                 let portfolioValueToday = 0;
 
@@ -3853,18 +3848,14 @@
 
                 if (portfolioValueYesterday === 0) return null;
 
-                const portfolioChangeToday = (portfolioValueToday - portfolioValueYesterday) / portfolioValueYesterday;
-                const spyChange = liveQuotes['SPY'] ? liveQuotes['SPY'].change / 100 : 0;
-                const qqqChange = liveQuotes['QQQ'] ? liveQuotes['QQQ'].change / 100 : 0;
-
-                // Apply today's change to last historical value
+                // Return percentage changes (as decimals, e.g., 0.05 for 5%)
                 return {
-                    portfolio: lastValue * (1 + portfolioChangeToday),
-                    spy: (data.spyValues?.[data.spyValues.length - 1]?.value || 100) * (1 + spyChange),
-                    qqq: (data.qqqValues?.[data.qqqValues.length - 1]?.value || 100) * (1 + qqqChange)
+                    portfolio: (portfolioValueToday - portfolioValueYesterday) / portfolioValueYesterday,
+                    spy: liveQuotes['SPY'] ? liveQuotes['SPY'].change / 100 : 0,
+                    qqq: liveQuotes['QQQ'] ? liveQuotes['QQQ'].change / 100 : 0
                 };
             } catch (e) {
-                console.warn('Failed to get today live value:', e);
+                console.warn('Failed to get today live changes:', e);
                 return null;
             }
         }
