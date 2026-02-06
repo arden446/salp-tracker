@@ -444,6 +444,41 @@
             border-color: var(--accent);
         }
 
+        .rebalance-mode-tabs {
+            display: flex;
+            gap: 0;
+        }
+
+        .rebal-tab {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--charcoal-light);
+            transition: all 0.15s ease;
+        }
+
+        .rebal-tab:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .rebal-tab:last-child {
+            border-radius: 0 4px 4px 0;
+            border-left: none;
+        }
+
+        .rebal-tab:hover {
+            color: var(--charcoal);
+        }
+
+        .rebal-tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
         .time-range-tabs {
             display: flex;
             gap: 0.5rem;
@@ -1402,6 +1437,10 @@
                 <div class="portfolio-mode-tabs">
                     <button class="mode-tab active" data-mode="full">Full Portfolio</button>
                     <button class="mode-tab" data-mode="equities">Equities Only</button>
+                </div>
+                <div class="rebalance-mode-tabs">
+                    <button class="rebal-tab active" data-rebal="report">Report Date</button>
+                    <button class="rebal-tab" data-rebal="filing">Filing Date</button>
                 </div>
                 <button class="btn" id="calculate-btn" disabled>Calculate Performance</button>
             </div>
@@ -2508,6 +2547,12 @@
         let allOptionsConfigured = false;
         let selectedRange = 'ALL';
         let portfolioMode = 'full'; // 'full' or 'equities'
+        let rebalanceMode = localStorage.getItem('rebalance-mode') || 'report'; // 'report' or 'filing'
+
+        function getActiveDate(quarter) {
+            const qData = getHoldingsData()[quarter];
+            return rebalanceMode === 'filing' ? qData.filedDate : qData.reportDate;
+        }
 
         function loadOptionConfig() {
             try {
@@ -2901,11 +2946,11 @@
             let prevPrices = {}, prevOptionPrices = {};
 
             for (const date of sortedDates) {
-                // Use holdings from a quarter starting on its reportDate (when values are accurate)
-                // e.g., Q2 holdings (valued as of June 30) are used from June 30 onward
+                // Use holdings from a quarter starting on its active date
+                // In report mode: reportDate (e.g. June 30); in filing mode: filedDate (e.g. Aug 14)
                 let activeQuarter = getQuarterOrder()[0];
                 for (const q of getQuarterOrder()) {
-                    if (date >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                    if (date >= getActiveDate(q)) activeQuarter = q;
                 }
 
                 const holdings = getHoldingsData()[activeQuarter].holdings;
@@ -2999,10 +3044,10 @@
             let prevPrices = {};
 
             for (const date of sortedDates) {
-                // Determine active quarter based on reportDate
+                // Determine active quarter based on active date
                 let activeQuarter = getQuarterOrder()[0];
                 for (const q of getQuarterOrder()) {
-                    if (date >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                    if (date >= getActiveDate(q)) activeQuarter = q;
                 }
 
                 const holdings = getHoldingsData()[activeQuarter].holdings;
@@ -3144,7 +3189,7 @@
                 // Get active quarter for this period
                 let activeQuarter = getQuarterOrder()[0];
                 for (const q of getQuarterOrder()) {
-                    if (startDate >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                    if (startDate >= getActiveDate(q)) activeQuarter = q;
                 }
 
                 const stockHoldings = getHoldingsData()[activeQuarter].holdings.filter(h => h.type === 'stock');
@@ -3346,7 +3391,7 @@
             // Determine active quarter for this date
             let activeQuarter = getQuarterOrder()[0];
             for (const q of getQuarterOrder()) {
-                if (date >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                if (date >= getActiveDate(q)) activeQuarter = q;
             }
 
             const holdings = getHoldingsData()[activeQuarter].holdings;
@@ -3540,10 +3585,10 @@
             const range = quarterRanges[quarter];
             if (!range) return;
 
-            // Determine which holdings to use - based on reportDate
+            // Determine which holdings to use - based on active date
             let holdingsQuarter = getQuarterOrder()[0];
             for (const q of getQuarterOrder()) {
-                if (range.start >= getHoldingsData()[q].reportDate) holdingsQuarter = q;
+                if (range.start >= getActiveDate(q)) holdingsQuarter = q;
             }
 
             const qData = getHoldingsData()[holdingsQuarter];
@@ -3771,6 +3816,21 @@
             }
         });
 
+        // Rebalance mode tabs (Report Date vs Filing Date)
+        document.querySelector('.rebalance-mode-tabs').addEventListener('click', async e => {
+            if (e.target.classList.contains('rebal-tab')) {
+                document.querySelectorAll('.rebal-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                rebalanceMode = e.target.dataset.rebal;
+                localStorage.setItem('rebalance-mode', rebalanceMode);
+                fund().fullPerformanceData = null;
+                fund().equitiesOnlyData = null;
+                updateCalculateButton();
+                hideWeightsPanel();
+                document.getElementById('performance-section').style.display = 'none';
+            }
+        });
+
         // Time range tabs
         document.querySelector('.time-range-tabs').addEventListener('click', async e => {
             if (e.target.classList.contains('range-tab')) {
@@ -3861,7 +3921,8 @@
                 }
             }
 
-            const label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
+            let label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
+            if (rebalanceMode === 'filing') label += ' — Filing Date';
             renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
             updateMetricsUI(calculateMetrics(filteredPortfolio));
             updateConstituentsUI(range, tickerPrices);
@@ -3875,11 +3936,11 @@
             const { tickerPrices } = data;
             const riskFreeRate = 0.05;
 
-            // Determine which quarter's holdings to use (most recent with reportDate <= today)
+            // Determine which quarter's holdings to use (most recent with active date <= today)
             const today = new Date().toISOString().split('T')[0];
             let activeQuarter = getQuarterOrder()[0];
             for (const q of getQuarterOrder()) {
-                if (today >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                if (today >= getActiveDate(q)) activeQuarter = q;
             }
 
             const holdings = getHoldingsData()[activeQuarter].holdings;
@@ -4004,7 +4065,8 @@
                 { date: todayStr, value: 100 + qqqChange }
             ];
 
-            const label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
+            let label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
+            if (rebalanceMode === 'filing') label += ' — Filing Date';
             renderChart(portfolioValues, spyValues, qqqValues, label);
             updateMetricsUI({ totalReturn: portfolioChange, ytdReturn: null, maxDrawdown: Math.min(0, -portfolioChange), sharpe: null });
 
@@ -4021,7 +4083,7 @@
                 const today = new Date().toISOString().split('T')[0];
                 let activeQuarter = getQuarterOrder()[0];
                 for (const q of getQuarterOrder()) {
-                    if (today >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                    if (today >= getActiveDate(q)) activeQuarter = q;
                 }
 
                 const holdings = getHoldingsData()[activeQuarter].holdings;
@@ -4102,7 +4164,8 @@
             const filteredSpy = filterCustom(spyValues);
             const filteredQqq = filterCustom(qqqValues);
 
-            const label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
+            let label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
+            if (rebalanceMode === 'filing') label += ' — Filing Date';
             renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
             updateMetricsUI(calculateMetrics(filteredPortfolio));
 
@@ -4120,7 +4183,7 @@
             // Determine which quarter's holdings to use
             let activeQuarter = getQuarterOrder()[0];
             for (const q of getQuarterOrder()) {
-                if (startDate >= getHoldingsData()[q].reportDate) activeQuarter = q;
+                if (startDate >= getActiveDate(q)) activeQuarter = q;
             }
 
             const stockHoldings = getHoldingsData()[activeQuarter].holdings.filter(h => h.type === 'stock');
@@ -4160,7 +4223,7 @@
                 for (const q of getQuarterOrder()) {
                     const held = getHoldingsData()[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === 'stock');
                     if (held) {
-                        firstHeldDate = getHoldingsData()[q].reportDate;
+                        firstHeldDate = getActiveDate(q);
                         break;
                     }
                 }
@@ -4217,7 +4280,7 @@
                     for (const q of getQuarterOrder()) {
                         const held = getHoldingsData()[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === h.type);
                         if (held) {
-                            firstHeldDate = getHoldingsData()[q].reportDate;
+                            firstHeldDate = getActiveDate(q);
                             firstHeldQuarter = q;
                             break;
                         }
@@ -4395,12 +4458,12 @@
 
             for (const q of getQuarterOrder()) {
                 const qData = getHoldingsData()[q];
-                const qStart = qData.reportDate;
+                const qStart = getActiveDate(q);
 
-                // Find quarter end (next quarter's reportDate or today)
+                // Find quarter end (next quarter's active date or today)
                 const qIdx = getQuarterOrder().indexOf(q);
                 const qEnd = qIdx < getQuarterOrder().length - 1
-                    ? getHoldingsData()[getQuarterOrder()[qIdx + 1]].reportDate
+                    ? getActiveDate(getQuarterOrder()[qIdx + 1])
                     : endStr;
 
                 // Skip if quarter is outside our range
@@ -4530,7 +4593,7 @@
                         held = getHoldingsData()[q].holdings.some(h => h.ticker === baseTicker && h.type === 'stock');
                     }
                     if (held) {
-                        firstHeldDate = getHoldingsData()[q].reportDate;
+                        firstHeldDate = getActiveDate(q);
                         firstHeldQuarter = q;
                         break;
                     }
@@ -4728,6 +4791,12 @@
 
             // Load state for active fund
             loadFundState();
+
+            // Sync rebalance mode UI with persisted state
+            if (rebalanceMode === 'filing') {
+                document.querySelectorAll('.rebal-tab').forEach(t => t.classList.remove('active'));
+                document.querySelector('.rebal-tab[data-rebal="filing"]').classList.add('active');
+            }
 
             // Apply fund UI
             await applyFundUI();
