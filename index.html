@@ -6,7 +6,7 @@
     <title>Situational Awareness LP - Portfolio Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&family=Raleway:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
@@ -1202,15 +1202,101 @@
             margin-top: 1rem;
             text-align: right;
         }
+
+        /* Fund Switcher */
+        .fund-switcher {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0.75rem;
+        }
+
+        .fund-tab {
+            padding: 0.45rem 1.2rem;
+            background: white;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--charcoal-light);
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .fund-tab:first-child {
+            border-radius: 20px 0 0 20px;
+        }
+
+        .fund-tab:last-child {
+            border-radius: 0 20px 20px 0;
+            border-left: none;
+        }
+
+        .fund-tab:hover {
+            color: var(--charcoal);
+        }
+
+        .fund-tab.active {
+            background: var(--charcoal);
+            color: white;
+            border-color: var(--charcoal);
+        }
+
+        /* VARA Theme (EA Forum Inspired) */
+        body.theme-vara {
+            --cream: #f7f7f7;
+            --cream-dark: #eef1f5;
+            --charcoal: #333333;
+            --charcoal-light: #676767;
+            --accent: #0c869b;
+            --accent-light: #10a3b8;
+            --green: #557555;
+            --red: #c53030;
+            --border: #d0dae5;
+            --shadow: rgba(0, 0, 0, 0.06);
+        }
+
+        body.theme-vara {
+            font-family: 'Merriweather', Georgia, serif;
+        }
+
+        body.theme-vara header h1,
+        body.theme-vara .section-title,
+        body.theme-vara .methodology h3,
+        body.theme-vara .metric-value,
+        body.theme-vara .chart-placeholder h3,
+        body.theme-vara .constituents-title,
+        body.theme-vara .weights-header h3,
+        body.theme-vara .settings-header h3 {
+            font-family: 'Raleway', 'Helvetica Neue', sans-serif;
+        }
+
+        body.theme-vara .fund-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        body.theme-vara .tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        body.theme-vara .range-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
+            <div class="fund-switcher" id="fund-switcher">
+                <button class="fund-tab active" data-fund="sa-lp">SA LP</button>
+                <button class="fund-tab" data-fund="vara">VARA</button>
+            </div>
             <div class="header-row">
                 <div>
-                    <h1>Situational Awareness LP</h1>
-                    <p class="subtitle">Portfolio Performance Tracker &middot; CIK 0002045724</p>
+                    <h1 id="fund-title">Situational Awareness LP</h1>
+                    <p class="subtitle" id="fund-subtitle">Portfolio Performance Tracker &middot; CIK 0002045724</p>
                 </div>
                 <button class="settings-btn" id="settings-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1377,7 +1463,7 @@
                 <div class="metric-card">
                     <div class="metric-label">Total Return</div>
                     <div class="metric-value" id="total-return">—</div>
-                    <div class="metric-subtitle">Since Q4 2024</div>
+                    <div class="metric-subtitle" id="total-return-subtitle">Since Q4 2024</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">2026 YTD Return</div>
@@ -1465,15 +1551,24 @@
         </section>
 
         <footer>
-            <p>Data from <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0002045724&type=13F" target="_blank">SEC EDGAR</a> and Yahoo Finance. Not financial advice.</p>
+            <p>Data from <a id="edgar-link" href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0002045724&type=13F" target="_blank">SEC EDGAR</a> and Yahoo Finance. Not financial advice.</p>
         </footer>
     </div>
 
     <script>
         // ============================================
-        // 13F HOLDINGS DATA
+        // FUND PROFILES
         // ============================================
-        const HOLDINGS_DATA = {
+        const FUND_PROFILES = {
+            'sa-lp': {
+                id: 'sa-lp',
+                name: 'Situational Awareness LP',
+                shortName: 'SA LP',
+                cik: '0002045724',
+                theme: 'sa',
+                storagePrefix: 'sa-tracker',
+                chartColor: '#2c5282',
+                defaultHoldings: {
             'Q4-2024': {
                 reportDate: '2024-12-31',
                 filedDate: '2025-02-11',
@@ -1561,86 +1656,191 @@
                     { ticker: 'STX', name: 'Seagate Technology', shares: 48567, value: 11464726, type: 'stock' }
                 ]
             }
+                },
+                defaultQuarterOrder: ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025'],
+                cusipToTicker: {
+                    '573874104': 'MRVL', '92840M102': 'VST', '92535P101': 'VRT',
+                    '87425E103': 'TLN', '21037T109': 'CEG', '607828100': 'MOD',
+                    '458140100': 'INTC', '11135F101': 'AVGO', '682529107': 'ONTO',
+                    '26856L103': 'EQT', '21872J107': 'CRWV', '21871X109': 'CORZ',
+                    'G4701H208': 'IREN', '03831W108': 'APLD', '78464A714': 'SMH',
+                    '67066G104': 'NVDA', '874039100': 'TSM', '595112103': 'MU',
+                    '093671105': 'BE', '36254L100': 'GLXY', '87612E106': 'TSEM',
+                    '17469E108': 'CIFR', '767292105': 'RIOT', '55024U109': 'LITE',
+                    '83417Q105': 'SEI', '44267D107': 'HUT', '958102105': 'WDC',
+                    '19247G107': 'COHR', 'G1241V102': 'BTDR', '80004C209': 'SNDK',
+                    '81211L102': 'STX',
+                },
+                nameToTicker: {
+                    'MARVELL': 'MRVL', 'VISTRA': 'VST', 'VERTIV': 'VRT',
+                    'TALEN': 'TLN', 'CONSTELLATION ENERGY': 'CEG', 'MODINE': 'MOD',
+                    'INTEL': 'INTC', 'BROADCOM': 'AVGO', 'ONTO INNOVATION': 'ONTO',
+                    'EQT CORP': 'EQT', 'COREWEAVE': 'CRWV', 'CORE SCIENTIFIC': 'CORZ',
+                    'IREN': 'IREN', 'APPLIED DIGITAL': 'APLD', 'VANECK SEMICONDUCTOR': 'SMH',
+                    'NVIDIA': 'NVDA', 'TAIWAN SEMICONDUCTOR': 'TSM', 'MICRON': 'MU',
+                    'BLOOM ENERGY': 'BE', 'GALAXY DIGITAL': 'GLXY', 'TOWER SEMICONDUCTOR': 'TSEM',
+                    'CIPHER MINING': 'CIFR', 'RIOT': 'RIOT', 'LUMENTUM': 'LITE',
+                    'SOLARIS': 'SEI', 'HUT 8': 'HUT', 'WESTERN DIGITAL': 'WDC',
+                    'COHERENT': 'COHR', 'BITDEER': 'BTDR', 'SANDISK': 'SNDK',
+                    'SEAGATE': 'STX',
+                },
+                defaultIVs: {
+                    'INTC': 45, 'SMH': 30, 'NVDA': 50, 'CRWV': 65,
+                    'AVGO': 35, 'TSM': 35, 'MU': 50, 'BE': 60,
+                },
+            },
+            'vara': {
+                id: 'vara',
+                name: 'Value Aligned Research Advisors',
+                shortName: 'VARA',
+                cik: '0001963565',
+                theme: 'vara',
+                storagePrefix: 'vara-tracker',
+                chartColor: '#0c869b',
+                defaultHoldings: {
+                    'Q4-2024': {
+                        reportDate: '2024-12-31',
+                        filedDate: '2025-02-18',
+                        periodStart: '2024-10-01',
+                        periodEnd: '2024-12-31',
+                        holdings: [
+                            { ticker: 'VRT', name: 'Vertiv Holdings Co', shares: 1205000, value: 136929000, type: 'stock' },
+                            { ticker: 'MRVL', name: 'Marvell Technology Inc', shares: 880000, value: 97203000, type: 'stock' },
+                            { ticker: 'GEV', name: 'GE Vernova Inc', shares: 221000, value: 75135000, type: 'stock' },
+                            { ticker: 'ONTO', name: 'Onto Innovation Inc', shares: 281000, value: 57363000, type: 'stock' },
+                        ]
+                    },
+                    'Q1-2025': {
+                        reportDate: '2025-03-31',
+                        filedDate: '2025-05-15',
+                        periodStart: '2025-01-01',
+                        periodEnd: '2025-03-31',
+                        holdings: [
+                            { ticker: 'VST', name: 'Vistra Corp', shares: 1482091, value: 174000000, type: 'stock' },
+                            { ticker: 'GEV', name: 'GE Vernova Inc', shares: 494624, value: 151000000, type: 'stock' },
+                            { ticker: 'MU', name: 'Micron Technology Inc', shares: 1505060, value: 131000000, type: 'stock' },
+                            { ticker: 'CEG', name: 'Constellation Energy Corp', shares: 634487, value: 128000000, type: 'stock' },
+                            { ticker: 'VRT', name: 'Vertiv Holdings Co', shares: 1722237, value: 124000000, type: 'stock' },
+                            { ticker: 'ALAB', name: 'Astera Labs Inc', shares: 1333198, value: 80000000, type: 'stock' },
+                            { ticker: 'TLN', name: 'Talen Energy Corp', shares: 350793, value: 70000000, type: 'stock' },
+                            { ticker: 'CLS', name: 'Celestica Inc', shares: 496453, value: 39000000, type: 'stock' },
+                            { ticker: 'RIOT', name: 'Riot Platforms Inc', shares: 5012983, value: 36000000, type: 'stock' },
+                            { ticker: 'COHR', name: 'Coherent Corp', shares: 524984, value: 34000000, type: 'stock' },
+                            { ticker: 'BE', name: 'Bloom Energy Corp', shares: 1609187, value: 32000000, type: 'stock' },
+                            { ticker: 'ONTO', name: 'Onto Innovation Inc', shares: 223840, value: 27000000, type: 'stock' },
+                        ]
+                    },
+                    'Q2-2025': {
+                        reportDate: '2025-06-30',
+                        filedDate: '2025-08-14',
+                        periodStart: '2025-04-01',
+                        periodEnd: '2025-06-30',
+                        holdings: [
+                            { ticker: 'NVDA', name: 'NVIDIA Corp', shares: 2134800, value: 337000000, type: 'call' },
+                            { ticker: 'TSM', name: 'Taiwan Semiconductor', shares: 1333500, value: 302000000, type: 'call' },
+                            { ticker: 'VST', name: 'Vistra Corp', shares: 1368338, value: 265000000, type: 'stock' },
+                            { ticker: 'INTC', name: 'Intel Corp', shares: 11276700, value: 253000000, type: 'call' },
+                            { ticker: 'GOOGL', name: 'Alphabet Inc', shares: 1384100, value: 244000000, type: 'call' },
+                            { ticker: 'MU', name: 'Micron Technology Inc', shares: 1887678, value: 233000000, type: 'stock' },
+                            { ticker: 'CEG', name: 'Constellation Energy Corp', shares: 714763, value: 231000000, type: 'stock' },
+                            { ticker: 'VRT', name: 'Vertiv Holdings Co', shares: 1753721, value: 225000000, type: 'stock' },
+                            { ticker: 'AVGO', name: 'Broadcom Inc', shares: 748600, value: 206000000, type: 'call' },
+                            { ticker: 'GEV', name: 'GE Vernova Inc', shares: 384669, value: 204000000, type: 'stock' },
+                            { ticker: 'CLS', name: 'Celestica Inc', shares: 1191321, value: 186000000, type: 'stock' },
+                            { ticker: 'TLN', name: 'Talen Energy Corp', shares: 376428, value: 110000000, type: 'stock' },
+                            { ticker: 'ALAB', name: 'Astera Labs Inc', shares: 1181031, value: 107000000, type: 'stock' },
+                            { ticker: 'RIOT', name: 'Riot Platforms Inc', shares: 5141221, value: 58000000, type: 'stock' },
+                            { ticker: 'NRG', name: 'NRG Energy Inc', shares: 356956, value: 57000000, type: 'stock' },
+                        ]
+                    },
+                    'Q3-2025': {
+                        reportDate: '2025-09-30',
+                        filedDate: '2025-12-03',
+                        periodStart: '2025-07-01',
+                        periodEnd: '2025-09-30',
+                        holdings: [
+                            { ticker: 'TSM', name: 'Taiwan Semiconductor', shares: 2900000, value: 815000000, type: 'stock' },
+                            { ticker: 'NVDA', name: 'NVIDIA Corp', shares: 4000000, value: 749000000, type: 'stock' },
+                            { ticker: 'CRWV', name: 'CoreWeave Inc', shares: 3600000, value: 486000000, type: 'stock' },
+                            { ticker: 'AVGO', name: 'Broadcom Inc', shares: 1300000, value: 431000000, type: 'stock' },
+                            { ticker: 'VRT', name: 'Vertiv Holdings Co', shares: 2600000, value: 394000000, type: 'stock' },
+                            { ticker: 'INTC', name: 'Intel Corp (Call)', shares: 11000000, value: 378000000, type: 'call' },
+                            { ticker: 'MU', name: 'Micron Technology Inc', shares: 2200000, value: 376000000, type: 'stock' },
+                            { ticker: 'GOOGL', name: 'Alphabet Inc', shares: 1400000, value: 341000000, type: 'stock' },
+                            { ticker: 'CLS', name: 'Celestica Inc', shares: 1400000, value: 338000000, type: 'stock' },
+                            { ticker: 'VST', name: 'Vistra Corp', shares: 1700000, value: 328000000, type: 'stock' },
+                        ]
+                    }
+                },
+                defaultQuarterOrder: ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025'],
+                cusipToTicker: {
+                    '67066G104': 'NVDA', '874039100': 'TSM', '92535P101': 'VRT',
+                    '573874104': 'MRVL', '92840M102': 'VST', '595112103': 'MU',
+                    '21037T109': 'CEG', '458140100': 'INTC', '11135F101': 'AVGO',
+                    '02079K107': 'GOOGL', '17888H103': 'CLS', '87425E103': 'TLN',
+                    'G0085P108': 'ALAB', '767292105': 'RIOT', '629377508': 'NRG',
+                    '682529107': 'ONTO', '19247G107': 'COHR', '093671105': 'BE',
+                    '21872J107': 'CRWV', '36828A101': 'GEV', '03831W108': 'APLD',
+                    '36254L100': 'GLXY', '17469E108': 'CIFR', '594918104': 'MSFT',
+                    '68389X105': 'ORCL', '00508Y102': 'AMAT', '55261F104': 'LRCX',
+                    '78464A714': 'SMH', '44267D107': 'HUT',
+                },
+                nameToTicker: {
+                    'NVIDIA': 'NVDA', 'TAIWAN SEMICONDUCTOR': 'TSM', 'VERTIV': 'VRT',
+                    'MARVELL': 'MRVL', 'VISTRA': 'VST', 'MICRON': 'MU',
+                    'CONSTELLATION ENERGY': 'CEG', 'INTEL': 'INTC', 'BROADCOM': 'AVGO',
+                    'ALPHABET': 'GOOGL', 'CELESTICA': 'CLS', 'TALEN': 'TLN',
+                    'ASTERA': 'ALAB', 'RIOT': 'RIOT', 'NRG': 'NRG',
+                    'ONTO INNOVATION': 'ONTO', 'COHERENT': 'COHR', 'BLOOM ENERGY': 'BE',
+                    'COREWEAVE': 'CRWV', 'GE VERNOVA': 'GEV', 'APPLIED DIGITAL': 'APLD',
+                    'GALAXY DIGITAL': 'GLXY', 'CIPHER MINING': 'CIFR', 'MICROSOFT': 'MSFT',
+                    'ORACLE': 'ORCL', 'APPLIED MATERIALS': 'AMAT', 'LAM RESEARCH': 'LRCX',
+                    'VANECK SEMICONDUCTOR': 'SMH', 'HUT 8': 'HUT',
+                },
+                defaultIVs: {
+                    'INTC': 45, 'NVDA': 50, 'TSM': 35, 'GOOGL': 30,
+                    'AVGO': 35, 'SMH': 30, 'MU': 50,
+                },
+            }
         };
 
-        const QUARTER_ORDER = ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025'];
+        // ============================================
+        // PER-FUND STATE
+        // ============================================
+        let activeFund = localStorage.getItem('tracker-active-fund') || 'sa-lp';
+
+        // Per-fund runtime state
+        const fundState = {};
+        for (const [id, profile] of Object.entries(FUND_PROFILES)) {
+            fundState[id] = {
+                holdingsData: JSON.parse(JSON.stringify(profile.defaultHoldings)),
+                quarterOrder: [...profile.defaultQuarterOrder],
+                optionConfig: {},
+                priceCache: {},
+                ivCache: {},
+                fullPerformanceData: null,
+                equitiesOnlyData: null,
+                currentQuarter: profile.defaultQuarterOrder[profile.defaultQuarterOrder.length - 1],
+                liveQuotesCache: null,
+                liveQuotesCacheTime: 0,
+            };
+        }
+
+        function fund() { return fundState[activeFund]; }
+        function profile() { return FUND_PROFILES[activeFund]; }
+
+        // Proxy HOLDINGS_DATA and getQuarterOrder() to per-fund state for minimal code changes
+        function getHoldingsData() { return fund().holdingsData; }
+        function getQuarterOrder() { return fund().quarterOrder; }
 
         // ============================================
         // 13F DATA FETCHING
         // ============================================
-        const SEC_CIK = '0002045724';
-
-        // CUSIP to ticker mapping (built from known holdings + common securities)
-        const CUSIP_TO_TICKER = {
-            '573874104': 'MRVL',
-            '92840M102': 'VST',
-            '92535P101': 'VRT',
-            '87425E103': 'TLN',
-            '21037T109': 'CEG',
-            '607828100': 'MOD',
-            '458140100': 'INTC',
-            '11135F101': 'AVGO',
-            '682529107': 'ONTO',
-            '26856L103': 'EQT',
-            '21872J107': 'CRWV',
-            '21871X109': 'CORZ',
-            'G4701H208': 'IREN',
-            '03831W108': 'APLD',
-            '78464A714': 'SMH',
-            '67066G104': 'NVDA',
-            '874039100': 'TSM',
-            '595112103': 'MU',
-            '093671105': 'BE',
-            '36254L100': 'GLXY',
-            '87612E106': 'TSEM',
-            '17469E108': 'CIFR',
-            '767292105': 'RIOT',
-            '55024U109': 'LITE',
-            '83417Q105': 'SEI',
-            '44267D107': 'HUT',
-            '958102105': 'WDC',
-            '19247G107': 'COHR',
-            'G1241V102': 'BTDR',
-            '80004C209': 'SNDK',
-            '81211L102': 'STX',
-        };
 
         // Try to identify ticker from issuer name
         function guessTickerFromName(name) {
             const nameUpper = name.toUpperCase();
-            const mappings = {
-                'MARVELL': 'MRVL',
-                'VISTRA': 'VST',
-                'VERTIV': 'VRT',
-                'TALEN': 'TLN',
-                'CONSTELLATION ENERGY': 'CEG',
-                'MODINE': 'MOD',
-                'INTEL': 'INTC',
-                'BROADCOM': 'AVGO',
-                'ONTO INNOVATION': 'ONTO',
-                'EQT CORP': 'EQT',
-                'COREWEAVE': 'CRWV',
-                'CORE SCIENTIFIC': 'CORZ',
-                'IREN': 'IREN',
-                'APPLIED DIGITAL': 'APLD',
-                'VANECK SEMICONDUCTOR': 'SMH',
-                'NVIDIA': 'NVDA',
-                'TAIWAN SEMICONDUCTOR': 'TSM',
-                'MICRON': 'MU',
-                'BLOOM ENERGY': 'BE',
-                'GALAXY DIGITAL': 'GLXY',
-                'TOWER SEMICONDUCTOR': 'TSEM',
-                'CIPHER MINING': 'CIFR',
-                'RIOT': 'RIOT',
-                'LUMENTUM': 'LITE',
-                'SOLARIS': 'SEI',
-                'HUT 8': 'HUT',
-                'WESTERN DIGITAL': 'WDC',
-                'COHERENT': 'COHR',
-                'BITDEER': 'BTDR',
-                'SANDISK': 'SNDK',
-                'SEAGATE': 'STX',
-            };
+            const mappings = profile().nameToTicker;
             for (const [key, ticker] of Object.entries(mappings)) {
                 if (nameUpper.includes(key)) return ticker;
             }
@@ -1659,7 +1859,7 @@
 
             try {
                 // Fetch submissions list from SEC EDGAR
-                const submissionsUrl = `https://data.sec.gov/submissions/CIK${SEC_CIK}.json`;
+                const submissionsUrl = `https://data.sec.gov/submissions/CIK${profile().cik}.json`;
                 const workerUrl = getWorkerUrl();
 
                 // Build proxy list - worker first if configured, then public fallbacks
@@ -1766,27 +1966,27 @@
                 updateHoldingsDataFromStorage();
 
                 const lastChecked = new Date().toLocaleString();
-                localStorage.setItem('sa-tracker-last-13f-check', lastChecked);
+                localStorage.setItem(profile().storagePrefix + '-last-13f-check', lastChecked);
 
                 statusEl.textContent = `Updated ${parsed} quarters. Last checked: ${lastChecked}`;
                 statusEl.className = 'data-update-status success';
 
                 // Clear performance cache so it recalculates with new data
-                fullPerformanceData = null;
-                equitiesOnlyData = null;
-                priceCache = {};
+                fund().fullPerformanceData = null;
+                fund().equitiesOnlyData = null;
+                fund().priceCache = {};
 
                 // Update quarter tabs if we have new quarters
                 updateQuarterTabs();
 
                 // Ensure currentQuarter is still valid
-                if (!QUARTER_ORDER.includes(currentQuarter)) {
-                    currentQuarter = QUARTER_ORDER[QUARTER_ORDER.length - 1];
+                if (!getQuarterOrder().includes(fund().currentQuarter)) {
+                    fund().currentQuarter = getQuarterOrder()[getQuarterOrder().length - 1];
                 }
 
                 // Refresh the UI
                 await renderOptionsConfig();
-                updateHoldingsUI(currentQuarter);
+                updateHoldingsUI(fund().currentQuarter);
 
             } catch (e) {
                 console.error('13F fetch error:', e);
@@ -1800,7 +2000,7 @@
 
         async function parse13FFiling(filing, proxies) {
             const accessionClean = filing.accession.replace(/-/g, '');
-            const baseUrl = `https://www.sec.gov/Archives/edgar/data/${SEC_CIK.replace(/^0+/, '')}/${accessionClean}`;
+            const baseUrl = `https://www.sec.gov/Archives/edgar/data/${profile().cik.replace(/^0+/, '')}/${accessionClean}`;
 
             // Try to find and fetch the infotable XML
             let xmlContent = null;
@@ -1927,7 +2127,7 @@
                     if (!nameOfIssuer || isNaN(value) || isNaN(shares)) return;
 
                     // Determine ticker
-                    let ticker = CUSIP_TO_TICKER[cusip] || guessTickerFromName(nameOfIssuer);
+                    let ticker = profile().cusipToTicker[cusip] || guessTickerFromName(nameOfIssuer);
                     if (!ticker) {
                         // Use first word of issuer name as fallback ticker
                         ticker = nameOfIssuer.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, '');
@@ -2008,9 +2208,35 @@
             return periods[q];
         }
 
+        const QUARTER_SUBTITLES = { 'Q1': 'Jan - Mar', 'Q2': 'Apr - Jun', 'Q3': 'Jul - Sep', 'Q4': 'Oct - Dec' };
+
+        function buildQuarterRanges() {
+            const ranges = {};
+            // Build from existing quarters plus the next one
+            const allQuarters = [...getQuarterOrder()];
+            // Add next quarter after last
+            const lastQ = allQuarters[allQuarters.length - 1];
+            if (lastQ) {
+                const [q, y] = lastQ.split('-');
+                const nextQ = q === 'Q4' ? `Q1-${parseInt(y) + 1}` : `Q${parseInt(q[1]) + 1}-${y}`;
+                if (!allQuarters.includes(nextQ)) allQuarters.push(nextQ);
+            }
+            for (const qStr of allQuarters) {
+                const period = getQuarterPeriod(qStr);
+                const [q] = qStr.split('-');
+                ranges[qStr] = {
+                    start: period.start,
+                    end: period.end,
+                    label: qStr.replace('-', ' '),
+                    subtitle: QUARTER_SUBTITLES[q] || ''
+                };
+            }
+            return ranges;
+        }
+
         function mergeHoldingsData(newData) {
             // Start with existing hardcoded data as base
-            const merged = JSON.parse(JSON.stringify(HOLDINGS_DATA));
+            const merged = JSON.parse(JSON.stringify(getHoldingsData()));
 
             // Override with fetched data
             for (const [quarter, data] of Object.entries(newData)) {
@@ -2021,25 +2247,25 @@
         }
 
         function saveHoldingsToStorage(data) {
-            localStorage.setItem('sa-tracker-holdings-data', JSON.stringify(data));
-            // Also update QUARTER_ORDER if we have new quarters
+            localStorage.setItem(profile().storagePrefix + '-holdings-data', JSON.stringify(data));
+            // Also update getQuarterOrder() if we have new quarters
             const quarters = Object.keys(data).sort((a, b) => {
                 const [qa, ya] = a.split('-');
                 const [qb, yb] = b.split('-');
                 if (ya !== yb) return ya.localeCompare(yb);
                 return qa.localeCompare(qb);
             });
-            localStorage.setItem('sa-tracker-quarter-order', JSON.stringify(quarters));
+            localStorage.setItem(profile().storagePrefix + '-quarter-order', JSON.stringify(quarters));
         }
 
         // Non-equity securities management
         function saveNonEquitySecurities(data) {
-            localStorage.setItem('sa-tracker-non-equity', JSON.stringify(data));
+            localStorage.setItem(profile().storagePrefix + '-non-equity', JSON.stringify(data));
         }
 
         function loadNonEquitySecurities() {
             try {
-                const data = localStorage.getItem('sa-tracker-non-equity');
+                const data = localStorage.getItem(profile().storagePrefix + '-non-equity');
                 if (data) return JSON.parse(data);
             } catch (e) { console.warn('Failed to load non-equity securities:', e); }
             return {};
@@ -2047,14 +2273,14 @@
 
         function getNonEquityConfig() {
             try {
-                const data = localStorage.getItem('sa-tracker-non-equity-config');
+                const data = localStorage.getItem(profile().storagePrefix + '-non-equity-config');
                 if (data) return JSON.parse(data);
             } catch (e) { console.warn('Failed to load non-equity config:', e); }
             return {};
         }
 
         function saveNonEquityConfig(config) {
-            localStorage.setItem('sa-tracker-non-equity-config', JSON.stringify(config));
+            localStorage.setItem(profile().storagePrefix + '-non-equity-config', JSON.stringify(config));
         }
 
         function getNonEquityKey(quarter, cusip) {
@@ -2154,9 +2380,9 @@
             applyNonEquityToHoldings();
 
             // Clear performance cache
-            fullPerformanceData = null;
-            equitiesOnlyData = null;
-            priceCache = {};
+            fund().fullPerformanceData = null;
+            fund().equitiesOnlyData = null;
+            fund().priceCache = {};
 
             alert('Non-equity configuration saved. Click "Calculate Performance" to see updated results.');
         }
@@ -2166,7 +2392,7 @@
             const nonEquity = loadNonEquitySecurities();
 
             for (const [quarter, securities] of Object.entries(nonEquity)) {
-                if (!HOLDINGS_DATA[quarter]) continue;
+                if (!getHoldingsData()[quarter]) continue;
 
                 for (const sec of securities) {
                     const key = getNonEquityKey(quarter, sec.cusip);
@@ -2175,13 +2401,13 @@
                     if (!cfg || cfg.treatment === 'exclude') continue;
 
                     // Remove any existing entry with same CUSIP
-                    HOLDINGS_DATA[quarter].holdings = HOLDINGS_DATA[quarter].holdings.filter(
+                    getHoldingsData()[quarter].holdings = getHoldingsData()[quarter].holdings.filter(
                         h => h.cusip !== sec.cusip
                     );
 
                     if (cfg.treatment === 'equity') {
                         // Add as stock position
-                        HOLDINGS_DATA[quarter].holdings.push({
+                        getHoldingsData()[quarter].holdings.push({
                             ticker: sec.ticker,
                             name: sec.name,
                             shares: sec.shares,
@@ -2192,7 +2418,7 @@
                         });
                     } else if (cfg.treatment === 'convertible' && cfg.conversionPrice && cfg.expiry) {
                         // Add as call option (convertible to equity)
-                        HOLDINGS_DATA[quarter].holdings.push({
+                        getHoldingsData()[quarter].holdings.push({
                             ticker: sec.ticker,
                             name: `${sec.name} (Convertible)`,
                             shares: sec.shares,
@@ -2208,12 +2434,12 @@
             }
 
             // Save updated holdings
-            saveHoldingsToStorage(HOLDINGS_DATA);
+            saveHoldingsToStorage(getHoldingsData());
         }
 
         function loadHoldingsFromStorage() {
             try {
-                const data = localStorage.getItem('sa-tracker-holdings-data');
+                const data = localStorage.getItem(profile().storagePrefix + '-holdings-data');
                 if (data) return JSON.parse(data);
             } catch (e) { console.warn('Failed to load holdings from storage:', e); }
             return null;
@@ -2224,20 +2450,20 @@
             if (stored) {
                 // Update HOLDINGS_DATA in place
                 for (const [quarter, data] of Object.entries(stored)) {
-                    HOLDINGS_DATA[quarter] = data;
+                    getHoldingsData()[quarter] = data;
                 }
-                // Update QUARTER_ORDER
-                const storedOrder = localStorage.getItem('sa-tracker-quarter-order');
+                // Update getQuarterOrder()
+                const storedOrder = localStorage.getItem(profile().storagePrefix + '-quarter-order');
                 if (storedOrder) {
                     const newOrder = JSON.parse(storedOrder);
-                    QUARTER_ORDER.length = 0;
-                    QUARTER_ORDER.push(...newOrder);
+                    getQuarterOrder().length = 0;
+                    getQuarterOrder().push(...newOrder);
                 }
             }
         }
 
         function updateDataStatusUI() {
-            const lastChecked = localStorage.getItem('sa-tracker-last-13f-check');
+            const lastChecked = localStorage.getItem(profile().storagePrefix + '-last-13f-check');
             const statusEl = document.getElementById('data-update-status');
             if (lastChecked) {
                 statusEl.textContent = `Last checked: ${lastChecked}`;
@@ -2278,24 +2504,19 @@
         // ============================================
         // STATE
         // ============================================
-        let priceCache = {};
         let performanceChart = null;
-        let currentQuarter = 'Q3-2025';
-        let optionConfig = loadOptionConfig();
         let allOptionsConfigured = false;
-        let fullPerformanceData = null; // Stores { portfolioValues, spyValues, qqqValues, tickerPrices }
-        let equitiesOnlyData = null; // Stores equities-only performance
         let selectedRange = 'ALL';
         let portfolioMode = 'full'; // 'full' or 'equities'
 
         function loadOptionConfig() {
             try {
-                return JSON.parse(localStorage.getItem('sa-tracker-options-v3') || '{}');
+                return JSON.parse(localStorage.getItem(profile().storagePrefix + '-options-v3') || '{}');
             } catch { return {}; }
         }
 
         function saveOptionConfig() {
-            localStorage.setItem('sa-tracker-options-v3', JSON.stringify(optionConfig));
+            localStorage.setItem(profile().storagePrefix + '-options-v3', JSON.stringify(fund().optionConfig));
         }
 
         function getOptionKey(quarter, ticker, type, shares) {
@@ -2393,7 +2614,7 @@
 
         async function fetchPrices(ticker, startDate, endDate) {
             const cacheKey = `${ticker}-${startDate}-${endDate}`;
-            if (priceCache[cacheKey]) return priceCache[cacheKey];
+            if (fund().priceCache[cacheKey]) return fund().priceCache[cacheKey];
 
             const start = Math.floor(new Date(startDate).getTime() / 1000);
             const end = Math.floor(new Date(endDate).getTime() / 1000);
@@ -2411,7 +2632,7 @@
                         prices[new Date(ts[i] * 1000).toISOString().split('T')[0]] = close[i];
                     }
                 }
-                priceCache[cacheKey] = prices;
+                fund().priceCache[cacheKey] = prices;
                 return prices;
             }
 
@@ -2419,15 +2640,13 @@
         }
 
         // Fetch live quotes (current price + previous close) for 1D view
-        let liveQuotesCache = null;
-        let liveQuotesCacheTime = 0;
         const LIVE_QUOTES_CACHE_TTL = 60 * 1000; // 1 minute cache
 
         async function fetchLiveQuotes(tickers, forceRefresh = false) {
             // Return cached data if still fresh (unless force refresh)
             const now = Date.now();
-            if (!forceRefresh && liveQuotesCache && (now - liveQuotesCacheTime) < LIVE_QUOTES_CACHE_TTL) {
-                return liveQuotesCache;
+            if (!forceRefresh && fund().liveQuotesCache && (now - fund().liveQuotesCacheTime) < LIVE_QUOTES_CACHE_TTL) {
+                return fund().liveQuotesCache;
             }
 
             const quotes = {};
@@ -2448,23 +2667,15 @@
             }));
 
             if (Object.keys(quotes).length > 0) {
-                liveQuotesCache = quotes;
-                liveQuotesCacheTime = now;
+                fund().liveQuotesCache = quotes;
+                fund().liveQuotesCacheTime = now;
                 return quotes;
             }
             return null;
         }
 
-        // Default IV estimates (fallback if live fetch fails)
-        const DEFAULT_IVS = {
-            'INTC': 45, 'SMH': 30, 'NVDA': 50, 'CRWV': 65,
-            'AVGO': 35, 'TSM': 35, 'MU': 50, 'BE': 60,
-        };
-
-        let ivCache = {};
-
         async function fetchIV(ticker) {
-            if (ivCache[ticker]) return ivCache[ticker];
+            if (fund().ivCache[ticker]) return fund().ivCache[ticker];
 
             // Try options endpoint
             const optionsUrl = `https://query2.finance.yahoo.com/v7/finance/options/${ticker}`;
@@ -2482,16 +2693,16 @@
                         allOpts.sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot));
                         const iv = Math.round(allOpts[0].impliedVolatility * 100);
                         console.log(`${ticker}: IV = ${iv}% (live)`);
-                        ivCache[ticker] = iv;
+                        fund().ivCache[ticker] = iv;
                         return iv;
                     }
                 }
             }
 
             // Fallback to default
-            const defaultIV = DEFAULT_IVS[ticker] || 40;
+            const defaultIV = profile().defaultIVs[ticker] || 40;
             console.log(`${ticker}: IV = ${defaultIV}% (default)`);
-            ivCache[ticker] = defaultIV;
+            fund().ivCache[ticker] = defaultIV;
             return defaultIV;
         }
 
@@ -2500,8 +2711,8 @@
         // ============================================
         function getAllOptions() {
             const options = [];
-            for (const quarter of QUARTER_ORDER) {
-                for (const h of HOLDINGS_DATA[quarter].holdings) {
+            for (const quarter of getQuarterOrder()) {
+                for (const h of getHoldingsData()[quarter].holdings) {
                     if (h.type === 'call' || h.type === 'put') {
                         options.push({ ...h, quarter });
                     }
@@ -2520,8 +2731,8 @@
 
             tbody.innerHTML = options.map(o => {
                 const key = getOptionKey(o.quarter, o.ticker, o.type, o.shares);
-                const config = optionConfig[key] || {};
-                const iv = config.iv || ivCache[o.ticker] || DEFAULT_IVS[o.ticker] || 40;
+                const config = fund().optionConfig[key] || {};
+                const iv = config.iv || fund().ivCache[o.ticker] || profile().defaultIVs[o.ticker] || 40;
                 const spotPrice = o.value / o.shares;
 
                 return `
@@ -2563,15 +2774,15 @@
             const row = e.target.closest('tr');
             const key = row.dataset.key;
 
-            if (!optionConfig[key]) optionConfig[key] = {};
+            if (!fund().optionConfig[key]) fund().optionConfig[key] = {};
 
             const strike = row.querySelector('.config-strike').value;
             const expiry = row.querySelector('.config-expiry').value;
             const iv = row.querySelector('.config-iv').value;
 
-            if (strike) optionConfig[key].strike = parseFloat(strike);
-            if (expiry) optionConfig[key].expiry = expiry;
-            if (iv) optionConfig[key].iv = parseFloat(iv);
+            if (strike) fund().optionConfig[key].strike = parseFloat(strike);
+            if (expiry) fund().optionConfig[key].expiry = expiry;
+            if (iv) fund().optionConfig[key].iv = parseFloat(iv);
 
             saveOptionConfig();
             updateRowPremium(row);
@@ -2580,7 +2791,7 @@
 
         function updateRowPremium(row) {
             const key = row.dataset.key;
-            const config = optionConfig[key] || {};
+            const config = fund().optionConfig[key] || {};
             const premiumCell = row.querySelector('.calculated-premium');
 
             const strike = config.strike || parseFloat(row.querySelector('.config-strike').value);
@@ -2597,13 +2808,13 @@
             row.querySelector('.config-iv').classList.toggle('missing', !iv);
 
             if (strike && expiry && iv && spot) {
-                const reportDate = HOLDINGS_DATA[quarter].reportDate;
+                const reportDate = getHoldingsData()[quarter].reportDate;
                 const T = yearFraction(reportDate, expiry);
                 if (T > 0) {
                     const optionPrice = blackScholes(spot, strike, T, 0.05, iv / 100, type === 'call');
                     const premium = optionPrice * shares;
                     premiumCell.textContent = formatCurrency(premium);
-                    optionConfig[key].calculatedPremium = premium;
+                    fund().optionConfig[key].calculatedPremium = premium;
                     saveOptionConfig();
                 } else {
                     premiumCell.textContent = 'Expired';
@@ -2623,7 +2834,7 @@
 
             rows.forEach(row => {
                 const key = row.dataset.key;
-                const config = optionConfig[key] || {};
+                const config = fund().optionConfig[key] || {};
                 const strike = config.strike || parseFloat(row.querySelector('.config-strike').value);
                 const expiry = config.expiry || row.querySelector('.config-expiry').value;
                 const iv = config.iv || parseFloat(row.querySelector('.config-iv').value);
@@ -2660,13 +2871,13 @@
             const errors = [];
 
             const allTickers = new Set(['SPY', 'QQQ']);
-            for (const q of QUARTER_ORDER) {
-                for (const h of HOLDINGS_DATA[q].holdings) {
+            for (const q of getQuarterOrder()) {
+                for (const h of getHoldingsData()[q].holdings) {
                     allTickers.add(h.ticker);
                 }
             }
 
-            const startDate = '2024-10-01';
+            const startDate = getHoldingsData()[getQuarterOrder()[0]].periodStart;
             const endDate = new Date().toISOString().split('T')[0];
 
             await Promise.all(Array.from(allTickers).map(async ticker => {
@@ -2692,12 +2903,12 @@
             for (const date of sortedDates) {
                 // Use holdings from a quarter starting on its reportDate (when values are accurate)
                 // e.g., Q2 holdings (valued as of June 30) are used from June 30 onward
-                let activeQuarter = 'Q4-2024';
-                for (const q of QUARTER_ORDER) {
-                    if (date >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                let activeQuarter = getQuarterOrder()[0];
+                for (const q of getQuarterOrder()) {
+                    if (date >= getHoldingsData()[q].reportDate) activeQuarter = q;
                 }
 
-                const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+                const holdings = getHoldingsData()[activeQuarter].holdings;
                 const stockHoldings = holdings.filter(h => h.type === 'stock');
                 const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
 
@@ -2707,7 +2918,7 @@
                 let totalOptionPremium = 0;
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
                 }
                 const totalPortfolioValue = totalStockValue + totalOptionPremium;
@@ -2733,7 +2944,7 @@
                 // Option returns (using Black-Scholes, weighted by calculated premium)
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (!config?.strike || !config?.expiry || !config?.iv) continue;
 
                     const prices = tickerPrices[h.ticker];
@@ -2789,12 +3000,12 @@
 
             for (const date of sortedDates) {
                 // Determine active quarter based on reportDate
-                let activeQuarter = 'Q4-2024';
-                for (const q of QUARTER_ORDER) {
-                    if (date >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                let activeQuarter = getQuarterOrder()[0];
+                for (const q of getQuarterOrder()) {
+                    if (date >= getHoldingsData()[q].reportDate) activeQuarter = q;
                 }
 
-                const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+                const holdings = getHoldingsData()[activeQuarter].holdings;
                 const stockHoldings = holdings.filter(h => h.type === 'stock');
 
                 // For equities-only, total is just stock values
@@ -2861,14 +3072,8 @@
                 maxDrawdown = Math.max(maxDrawdown, (peak - p.value) / peak);
             }
 
-            // Calculate quarterly returns
-            const quarterRanges = {
-                'Q4-2024': { start: '2024-10-01', end: '2024-12-31', label: 'Q4 2024', subtitle: 'Oct - Dec' },
-                'Q1-2025': { start: '2025-01-01', end: '2025-03-31', label: 'Q1 2025', subtitle: 'Jan - Mar' },
-                'Q2-2025': { start: '2025-04-01', end: '2025-06-30', label: 'Q2 2025', subtitle: 'Apr - Jun' },
-                'Q3-2025': { start: '2025-07-01', end: '2025-09-30', label: 'Q3 2025', subtitle: 'Jul - Sep' },
-                'Q4-2025': { start: '2025-10-01', end: '2025-12-31', label: 'Q4 2025', subtitle: 'Oct - Dec' }
-            };
+            // Calculate quarterly returns - dynamically build ranges from available quarters
+            const quarterRanges = buildQuarterRanges();
 
             const quarterly = {};
             for (const [q, range] of Object.entries(quarterRanges)) {
@@ -2937,13 +3142,13 @@
                 const endDate = portfolioValues[cand.endIndex].date;
 
                 // Get active quarter for this period
-                let activeQuarter = 'Q4-2024';
-                for (const q of QUARTER_ORDER) {
-                    if (startDate >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                let activeQuarter = getQuarterOrder()[0];
+                for (const q of getQuarterOrder()) {
+                    if (startDate >= getHoldingsData()[q].reportDate) activeQuarter = q;
                 }
 
-                const stockHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'stock');
-                const optionHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'call' || h.type === 'put');
+                const stockHoldings = getHoldingsData()[activeQuarter].holdings.filter(h => h.type === 'stock');
+                const optionHoldings = getHoldingsData()[activeQuarter].holdings.filter(h => h.type === 'call' || h.type === 'put');
 
                 // Calculate total portfolio value
                 const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
@@ -2951,7 +3156,7 @@
                 if (portfolioMode === 'full') {
                     for (const h of optionHoldings) {
                         const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                        const config = optionConfig[key];
+                        const config = fund().optionConfig[key];
                         if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
                     }
                 }
@@ -2982,7 +3187,7 @@
                 if (portfolioMode === 'full') {
                     for (const h of optionHoldings) {
                         const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                        const config = optionConfig[key];
+                        const config = fund().optionConfig[key];
                         if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
 
                         const prices = tickerPrices[h.ticker];
@@ -3065,7 +3270,8 @@
         // ============================================
         // CHART & UI
         // ============================================
-        function renderChart(portfolio, spy, qqq, portfolioLabel = 'SA LP (Estimated)') {
+        function renderChart(portfolio, spy, qqq, portfolioLabel = null) {
+            if (!portfolioLabel) portfolioLabel = profile().shortName + ' (Estimated)';
             const ctx = document.getElementById('performance-chart').getContext('2d');
             if (performanceChart) performanceChart.destroy();
 
@@ -3076,8 +3282,8 @@
                         {
                             label: portfolioLabel,
                             data: portfolio.map(p => ({ x: p.date, y: p.value })),
-                            borderColor: '#2c5282',
-                            backgroundColor: 'rgba(44, 82, 130, 0.1)',
+                            borderColor: profile().chartColor,
+                            backgroundColor: profile().chartColor + '1a',
                             borderWidth: 2, fill: true, tension: 0.1, pointRadius: 0
                         },
                         {
@@ -3131,19 +3337,19 @@
         }
 
         function calculateWeightsForDate(date) {
-            const data = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            const data = portfolioMode === 'equities' ? fund().equitiesOnlyData : fund().fullPerformanceData;
             if (!data || !data.tickerPrices) return null;
 
             const { tickerPrices } = data;
             const riskFreeRate = 0.05;
 
             // Determine active quarter for this date
-            let activeQuarter = 'Q4-2024';
-            for (const q of QUARTER_ORDER) {
-                if (date >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+            let activeQuarter = getQuarterOrder()[0];
+            for (const q of getQuarterOrder()) {
+                if (date >= getHoldingsData()[q].reportDate) activeQuarter = q;
             }
 
-            const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+            const holdings = getHoldingsData()[activeQuarter].holdings;
             const stockHoldings = holdings.filter(h => h.type === 'stock');
             const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
 
@@ -3173,7 +3379,7 @@
             if (portfolioMode === 'full') {
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (!config?.strike || !config?.expiry || !config?.iv) continue;
 
                     const prices = tickerPrices[h.ticker];
@@ -3281,7 +3487,7 @@
 
             // Generate quarterly cards with expandable breakdowns
             const quarterlyContainer = document.getElementById('quarterly-metrics');
-            const quarters = ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025', 'Q4-2025'];
+            const quarters = Object.keys(buildQuarterRanges());
 
             quarterlyContainer.innerHTML = quarters.map(q => {
                 const qData = m.quarterly?.[q];
@@ -3324,29 +3530,23 @@
 
         function loadQuarterBreakdown(quarter) {
             const breakdownEl = document.getElementById(`breakdown-${quarter}`);
-            if (!breakdownEl || !fullPerformanceData) return;
+            if (!breakdownEl || !fund().fullPerformanceData) return;
 
-            const { tickerPrices } = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            const { tickerPrices } = portfolioMode === 'equities' ? fund().equitiesOnlyData : fund().fullPerformanceData;
 
             // Use same calendar quarter ranges as calculateMetrics
-            const quarterRanges = {
-                'Q4-2024': { start: '2024-10-01', end: '2024-12-31' },
-                'Q1-2025': { start: '2025-01-01', end: '2025-03-31' },
-                'Q2-2025': { start: '2025-04-01', end: '2025-06-30' },
-                'Q3-2025': { start: '2025-07-01', end: '2025-09-30' },
-                'Q4-2025': { start: '2025-10-01', end: '2025-12-31' }
-            };
+            const quarterRanges = buildQuarterRanges();
 
             const range = quarterRanges[quarter];
             if (!range) return;
 
             // Determine which holdings to use - based on reportDate
-            let holdingsQuarter = 'Q4-2024';
-            for (const q of QUARTER_ORDER) {
-                if (range.start >= HOLDINGS_DATA[q].reportDate) holdingsQuarter = q;
+            let holdingsQuarter = getQuarterOrder()[0];
+            for (const q of getQuarterOrder()) {
+                if (range.start >= getHoldingsData()[q].reportDate) holdingsQuarter = q;
             }
 
-            const qData = HOLDINGS_DATA[holdingsQuarter];
+            const qData = getHoldingsData()[holdingsQuarter];
             const stockHoldings = qData.holdings.filter(h => h.type === 'stock');
             const optionHoldings = qData.holdings.filter(h => h.type === 'call' || h.type === 'put');
 
@@ -3356,7 +3556,7 @@
             if (portfolioMode === 'full') {
                 for (const h of optionHoldings) {
                     const key = getOptionKey(holdingsQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
                 }
             }
@@ -3396,7 +3596,7 @@
             if (portfolioMode === 'full') {
                 for (const h of optionHoldings) {
                     const key = getOptionKey(holdingsQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
 
                     const prices = tickerPrices[h.ticker];
@@ -3465,7 +3665,7 @@
         }
 
         function updateHoldingsUI(quarter) {
-            const data = HOLDINGS_DATA[quarter];
+            const data = getHoldingsData()[quarter];
             const stocks = data.holdings.filter(h => h.type === 'stock');
             const options = data.holdings.filter(h => h.type === 'call' || h.type === 'put');
 
@@ -3474,7 +3674,7 @@
             let totalOptionPremium = 0;
             for (const h of options) {
                 const key = getOptionKey(quarter, h.ticker, h.type, h.shares);
-                const config = optionConfig[key] || {};
+                const config = fund().optionConfig[key] || {};
                 if (config.calculatedPremium) totalOptionPremium += config.calculatedPremium;
             }
             const totalPortfolioValue = totalStockValue + totalOptionPremium;
@@ -3500,7 +3700,7 @@
                 optCont.style.display = 'block';
                 document.getElementById('options-holdings').innerHTML = options.map(h => {
                     const key = getOptionKey(quarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key] || {};
+                    const config = fund().optionConfig[key] || {};
                     const premium = config.calculatedPremium || 0;
                     const weight = totalPortfolioValue > 0 ? (premium / totalPortfolioValue * 100).toFixed(1) : '—';
                     return `
@@ -3535,8 +3735,8 @@
         // ============================================
         document.getElementById('quarter-tabs').addEventListener('click', e => {
             if (e.target.classList.contains('tab')) {
-                currentQuarter = e.target.dataset.quarter;
-                updateHoldingsUI(currentQuarter);
+                fund().currentQuarter = e.target.dataset.quarter;
+                updateHoldingsUI(fund().currentQuarter);
             }
         });
 
@@ -3546,8 +3746,8 @@
             document.getElementById('metrics-section').style.display = 'block';
 
             try {
-                fullPerformanceData = await calculatePerformance();
-                equitiesOnlyData = calculateEquitiesOnly(fullPerformanceData.tickerPrices);
+                fund().fullPerformanceData = await calculatePerformance();
+                fund().equitiesOnlyData = calculateEquitiesOnly(fund().fullPerformanceData.tickerPrices);
                 document.getElementById('chart-loading').style.display = 'none';
                 updateChartForRange(selectedRange);
             } catch (e) {
@@ -3565,7 +3765,7 @@
                 portfolioMode = e.target.dataset.mode;
                 updateCalculateButton();
                 hideWeightsPanel();
-                if (fullPerformanceData) {
+                if (fund().fullPerformanceData) {
                     await updateChartForRange(selectedRange);
                 }
             }
@@ -3584,7 +3784,7 @@
                     customPicker.style.display = 'flex';
                 } else {
                     customPicker.style.display = 'none';
-                    if (fullPerformanceData) {
+                    if (fund().fullPerformanceData) {
                         await updateChartForRange(selectedRange);
                     }
                 }
@@ -3595,7 +3795,7 @@
         document.getElementById('apply-custom-range').addEventListener('click', () => {
             const startDate = document.getElementById('custom-start').value;
             const endDate = document.getElementById('custom-end').value;
-            if (startDate && endDate && fullPerformanceData) {
+            if (startDate && endDate && fund().fullPerformanceData) {
                 updateChartForCustomRange(startDate, endDate);
             }
         });
@@ -3628,10 +3828,10 @@
         }
 
         async function updateChartForRange(range) {
-            if (!fullPerformanceData) return;
+            if (!fund().fullPerformanceData) return;
 
             // Select data based on portfolio mode
-            const data = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            const data = portfolioMode === 'equities' ? fund().equitiesOnlyData : fund().fullPerformanceData;
             const { portfolioValues, spyValues, qqqValues, tickerPrices } = data;
 
             // Special handling for 1D - use live quotes
@@ -3661,7 +3861,7 @@
                 }
             }
 
-            const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
+            const label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
             renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
             updateMetricsUI(calculateMetrics(filteredPortfolio));
             updateConstituentsUI(range, tickerPrices);
@@ -3677,12 +3877,12 @@
 
             // Determine which quarter's holdings to use (most recent with reportDate <= today)
             const today = new Date().toISOString().split('T')[0];
-            let activeQuarter = QUARTER_ORDER[0];
-            for (const q of QUARTER_ORDER) {
-                if (today >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+            let activeQuarter = getQuarterOrder()[0];
+            for (const q of getQuarterOrder()) {
+                if (today >= getHoldingsData()[q].reportDate) activeQuarter = q;
             }
 
-            const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+            const holdings = getHoldingsData()[activeQuarter].holdings;
             const stockHoldings = holdings.filter(h => h.type === 'stock');
             const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
 
@@ -3717,7 +3917,7 @@
             if (portfolioMode === 'full') {
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (!config?.strike || !config?.expiry || !config?.iv) continue;
 
                     const quote = liveQuotes[h.ticker];
@@ -3804,7 +4004,7 @@
                 { date: todayStr, value: 100 + qqqChange }
             ];
 
-            const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
+            const label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
             renderChart(portfolioValues, spyValues, qqqValues, label);
             updateMetricsUI({ totalReturn: portfolioChange, ytdReturn: null, maxDrawdown: Math.min(0, -portfolioChange), sharpe: null });
 
@@ -3819,12 +4019,12 @@
             try {
                 // Determine active quarter
                 const today = new Date().toISOString().split('T')[0];
-                let activeQuarter = QUARTER_ORDER[0];
-                for (const q of QUARTER_ORDER) {
-                    if (today >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+                let activeQuarter = getQuarterOrder()[0];
+                for (const q of getQuarterOrder()) {
+                    if (today >= getHoldingsData()[q].reportDate) activeQuarter = q;
                 }
 
-                const holdings = HOLDINGS_DATA[activeQuarter].holdings;
+                const holdings = getHoldingsData()[activeQuarter].holdings;
                 const stockHoldings = holdings.filter(h => h.type === 'stock');
                 const allTickers = [...new Set([...stockHoldings.map(h => h.ticker), 'SPY', 'QQQ'])];
 
@@ -3885,9 +4085,9 @@
         }
 
         function updateChartForCustomRange(startDate, endDate) {
-            if (!fullPerformanceData) return;
+            if (!fund().fullPerformanceData) return;
 
-            const data = portfolioMode === 'equities' ? equitiesOnlyData : fullPerformanceData;
+            const data = portfolioMode === 'equities' ? fund().equitiesOnlyData : fund().fullPerformanceData;
             const { portfolioValues, spyValues, qqqValues, tickerPrices } = data;
 
             // Filter to custom range
@@ -3902,7 +4102,7 @@
             const filteredSpy = filterCustom(spyValues);
             const filteredQqq = filterCustom(qqqValues);
 
-            const label = portfolioMode === 'equities' ? 'SA LP (Equities Only)' : 'SA LP (Full Portfolio)';
+            const label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
             renderChart(filteredPortfolio, filteredSpy, filteredQqq, label);
             updateMetricsUI(calculateMetrics(filteredPortfolio));
 
@@ -3918,13 +4118,13 @@
             const riskFreeRate = 0.05;
 
             // Determine which quarter's holdings to use
-            let activeQuarter = 'Q4-2024';
-            for (const q of QUARTER_ORDER) {
-                if (startDate >= HOLDINGS_DATA[q].reportDate) activeQuarter = q;
+            let activeQuarter = getQuarterOrder()[0];
+            for (const q of getQuarterOrder()) {
+                if (startDate >= getHoldingsData()[q].reportDate) activeQuarter = q;
             }
 
-            const stockHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'stock');
-            const optionHoldings = HOLDINGS_DATA[activeQuarter].holdings.filter(h => h.type === 'call' || h.type === 'put');
+            const stockHoldings = getHoldingsData()[activeQuarter].holdings.filter(h => h.type === 'stock');
+            const optionHoldings = getHoldingsData()[activeQuarter].holdings.filter(h => h.type === 'call' || h.type === 'put');
 
             // Calculate total portfolio value
             const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
@@ -3932,7 +4132,7 @@
             if (portfolioMode === 'full') {
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
                 }
             }
@@ -3957,10 +4157,10 @@
 
                 // Get return since first held
                 let firstHeldDate = null;
-                for (const q of QUARTER_ORDER) {
-                    const held = HOLDINGS_DATA[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === 'stock');
+                for (const q of getQuarterOrder()) {
+                    const held = getHoldingsData()[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === 'stock');
                     if (held) {
-                        firstHeldDate = HOLDINGS_DATA[q].reportDate;
+                        firstHeldDate = getHoldingsData()[q].reportDate;
                         break;
                     }
                 }
@@ -3987,7 +4187,7 @@
             if (portfolioMode === 'full') {
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
-                    const config = optionConfig[key];
+                    const config = fund().optionConfig[key];
                     if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
 
                     const prices = tickerPrices[h.ticker];
@@ -4014,10 +4214,10 @@
                     // Get return since first held (for this option)
                     let firstHeldDate = null;
                     let firstHeldQuarter = null;
-                    for (const q of QUARTER_ORDER) {
-                        const held = HOLDINGS_DATA[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === h.type);
+                    for (const q of getQuarterOrder()) {
+                        const held = getHoldingsData()[q].holdings.some(hh => hh.ticker === h.ticker && hh.type === h.type);
                         if (held) {
-                            firstHeldDate = HOLDINGS_DATA[q].reportDate;
+                            firstHeldDate = getHoldingsData()[q].reportDate;
                             firstHeldQuarter = q;
                             break;
                         }
@@ -4027,7 +4227,7 @@
                         const datesFromPurchase = dates.filter(d => d >= firstHeldDate);
                         if (datesFromPurchase.length >= 2) {
                             const firstKey = getOptionKey(firstHeldQuarter, h.ticker, h.type, h.shares);
-                            const firstConfig = optionConfig[firstKey] || config;
+                            const firstConfig = fund().optionConfig[firstKey] || config;
                             if (firstConfig?.strike && firstConfig?.expiry && firstConfig?.iv) {
                                 const firstSpot = prices[datesFromPurchase[0]];
                                 const lastSpot = prices[datesFromPurchase[datesFromPurchase.length - 1]];
@@ -4193,14 +4393,14 @@
             // Each quarter: contribution = weight_in_quarter * return_during_quarter
             const tickerContributions = {}; // ticker -> { totalContribution, quarters: [...] }
 
-            for (const q of QUARTER_ORDER) {
-                const qData = HOLDINGS_DATA[q];
+            for (const q of getQuarterOrder()) {
+                const qData = getHoldingsData()[q];
                 const qStart = qData.reportDate;
 
                 // Find quarter end (next quarter's reportDate or today)
-                const qIdx = QUARTER_ORDER.indexOf(q);
-                const qEnd = qIdx < QUARTER_ORDER.length - 1
-                    ? HOLDINGS_DATA[QUARTER_ORDER[qIdx + 1]].reportDate
+                const qIdx = getQuarterOrder().indexOf(q);
+                const qEnd = qIdx < getQuarterOrder().length - 1
+                    ? getHoldingsData()[getQuarterOrder()[qIdx + 1]].reportDate
                     : endStr;
 
                 // Skip if quarter is outside our range
@@ -4220,7 +4420,7 @@
                 if (portfolioMode === 'full') {
                     for (const h of optionHoldings) {
                         const key = getOptionKey(q, h.ticker, h.type, h.shares);
-                        const config = optionConfig[key];
+                        const config = fund().optionConfig[key];
                         if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
                     }
                 }
@@ -4264,7 +4464,7 @@
                 if (portfolioMode === 'full') {
                     for (const h of optionHoldings) {
                         const key = getOptionKey(q, h.ticker, h.type, h.shares);
-                        const config = optionConfig[key];
+                        const config = fund().optionConfig[key];
                         if (!config?.strike || !config?.expiry || !config?.iv || !config?.calculatedPremium) continue;
 
                         const prices = tickerPrices[h.ticker];
@@ -4322,15 +4522,15 @@
                 // Find first quarter they held this position
                 let firstHeldDate = null;
                 let firstHeldQuarter = null;
-                for (const q of QUARTER_ORDER) {
+                for (const q of getQuarterOrder()) {
                     let held = false;
                     if (isOption) {
-                        held = HOLDINGS_DATA[q].holdings.some(h => h.ticker === baseTicker && h.type === contrib.type);
+                        held = getHoldingsData()[q].holdings.some(h => h.ticker === baseTicker && h.type === contrib.type);
                     } else {
-                        held = HOLDINGS_DATA[q].holdings.some(h => h.ticker === baseTicker && h.type === 'stock');
+                        held = getHoldingsData()[q].holdings.some(h => h.ticker === baseTicker && h.type === 'stock');
                     }
                     if (held) {
-                        firstHeldDate = HOLDINGS_DATA[q].reportDate;
+                        firstHeldDate = getHoldingsData()[q].reportDate;
                         firstHeldQuarter = q;
                         break;
                     }
@@ -4343,10 +4543,10 @@
                 if (datesFromPurchase.length >= 2) {
                     if (isOption) {
                         // For options, calculate Black-Scholes return
-                        const h = HOLDINGS_DATA[firstHeldQuarter].holdings.find(h => h.ticker === baseTicker && h.type === contrib.type);
+                        const h = getHoldingsData()[firstHeldQuarter].holdings.find(h => h.ticker === baseTicker && h.type === contrib.type);
                         if (h) {
                             const key = getOptionKey(firstHeldQuarter, h.ticker, h.type, h.shares);
-                            const config = optionConfig[key];
+                            const config = fund().optionConfig[key];
                             if (config?.strike && config?.expiry && config?.iv) {
                                 const startSpot = prices[datesFromPurchase[0]];
                                 const endSpot = prices[datesFromPurchase[datesFromPurchase.length - 1]];
@@ -4436,39 +4636,115 @@
         // ============================================
         function updateQuarterTabs() {
             const tabsContainer = document.getElementById('quarter-tabs');
-            tabsContainer.innerHTML = QUARTER_ORDER.map(q => {
+            tabsContainer.innerHTML = getQuarterOrder().map(q => {
                 const label = q.replace('-', ' ');
-                const isActive = q === currentQuarter;
+                const isActive = q === fund().currentQuarter;
                 return `<button class="tab ${isActive ? 'active' : ''}" data-quarter="${q}">${label}</button>`;
             }).join('');
         }
 
-        async function init() {
-            // Load any stored holdings data first
+        // Load per-fund state from localStorage
+        function loadFundState() {
+            fund().optionConfig = loadOptionConfig();
             updateHoldingsDataFromStorage();
-            updateDataStatusUI();
 
-            // Ensure currentQuarter is valid
-            if (!QUARTER_ORDER.includes(currentQuarter)) {
-                currentQuarter = QUARTER_ORDER[QUARTER_ORDER.length - 1];
+            if (!getQuarterOrder().includes(fund().currentQuarter)) {
+                fund().currentQuarter = getQuarterOrder()[getQuarterOrder().length - 1];
+            }
+        }
+
+        // Apply theme and update all UI for the active fund
+        async function applyFundUI() {
+            // Theme
+            document.body.classList.remove('theme-sa', 'theme-vara');
+            if (profile().theme !== 'sa') {
+                document.body.classList.add('theme-' + profile().theme);
             }
 
-            // Update quarter tabs to reflect current data
+            // Header
+            document.getElementById('fund-title').textContent = profile().name;
+            document.getElementById('fund-subtitle').textContent =
+                'Portfolio Performance Tracker \u00b7 CIK ' + profile().cik;
+
+            // Footer
+            document.getElementById('edgar-link').href =
+                'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=' + profile().cik + '&type=13F';
+
+            // Page title
+            document.title = profile().name + ' - Portfolio Tracker';
+
+            // Fund tabs
+            document.querySelectorAll('.fund-tab').forEach(t =>
+                t.classList.toggle('active', t.dataset.fund === activeFund)
+            );
+
+            // Total return subtitle
+            const firstQ = getQuarterOrder()[0];
+            document.getElementById('total-return-subtitle').textContent = 'Since ' + firstQ.replace('-', ' ');
+
+            // Data status
+            updateDataStatusUI();
+
+            // Quarter tabs
             updateQuarterTabs();
 
+            // Holdings
+            updateHoldingsUI(fund().currentQuarter);
+
+            // Non-equity
+            renderNonEquitySection();
+            applyNonEquityToHoldings();
+
+            // Options config
             await renderOptionsConfig();
-            updateHoldingsUI(currentQuarter);
             updateCalculateButton();
+
+            // Hide performance/metrics if not yet calculated for this fund
+            if (!fund().fullPerformanceData) {
+                document.getElementById('performance-section').style.display = 'none';
+                document.getElementById('metrics-section').style.display = 'none';
+            } else {
+                document.getElementById('performance-section').style.display = 'block';
+                document.getElementById('metrics-section').style.display = 'block';
+                await updateChartForRange(selectedRange);
+            }
+        }
+
+        // Switch to a different fund
+        async function switchFund(fundId) {
+            if (fundId === activeFund) return;
+            activeFund = fundId;
+            localStorage.setItem('tracker-active-fund', activeFund);
+            loadFundState();
+            await applyFundUI();
+        }
+
+        async function init() {
+            // Load state for all funds from storage
+            const savedFund = localStorage.getItem('tracker-active-fund');
+            if (savedFund && FUND_PROFILES[savedFund]) {
+                activeFund = savedFund;
+            }
+
+            // Load state for active fund
+            loadFundState();
+
+            // Apply fund UI
+            await applyFundUI();
 
             // Add 13F update button listener
             document.getElementById('check-13f-btn').addEventListener('click', fetch13FData);
 
             // Non-equity securities section
-            renderNonEquitySection();
             document.getElementById('save-non-equity-btn').addEventListener('click', applyNonEquityConfig);
 
-            // Apply any saved non-equity config on load
-            applyNonEquityToHoldings();
+            // Fund switcher
+            document.getElementById('fund-switcher').addEventListener('click', e => {
+                const tab = e.target.closest('.fund-tab');
+                if (tab && tab.dataset.fund) {
+                    switchFund(tab.dataset.fund);
+                }
+            });
 
             // Settings modal handlers
             initSettingsModal();
