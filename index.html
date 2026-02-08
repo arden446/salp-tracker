@@ -394,6 +394,16 @@
             font-size: 0.9rem;
         }
 
+        .warning-message {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
         .iv-loading {
             font-size: 0.75rem;
             color: var(--charcoal-light);
@@ -1518,6 +1528,16 @@
                     <div class="metric-label">Max Drawdown</div>
                     <div class="metric-value" id="max-drawdown">—</div>
                     <div class="metric-subtitle">Peak to trough</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Annualized Return</div>
+                    <div class="metric-value" id="ann-return">—</div>
+                    <div class="metric-subtitle">CAGR</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Annualized Volatility</div>
+                    <div class="metric-value" id="ann-vol">—</div>
+                    <div class="metric-subtitle">Daily, annualized</div>
                 </div>
             </div>
             <div class="metrics-grid quarterly-metrics" id="quarterly-metrics" style="margin-top: 1rem;">
@@ -2933,7 +2953,23 @@
                 } catch { errors.push(ticker); }
             }));
 
-            if (errors.length > 0) {
+            // Track missing tickers (exclude benchmarks)
+            const fetchedTickers = new Set(Object.keys(tickerPrices));
+            const missingTickers = Array.from(allTickers).filter(t => !fetchedTickers.has(t) && t !== 'SPY' && t !== 'QQQ');
+
+            // Calculate missing value percentage across all quarters
+            let totalHoldingsValue = 0, missingHoldingsValue = 0;
+            for (const q of getQuarterOrder()) {
+                for (const h of getHoldingsData()[q].holdings) {
+                    totalHoldingsValue += h.value;
+                    if (missingTickers.includes(h.ticker)) missingHoldingsValue += h.value;
+                }
+            }
+            const missingPct = totalHoldingsValue > 0 ? (missingHoldingsValue / totalHoldingsValue * 100) : 0;
+
+            if (missingTickers.length > 0) {
+                showWarning(`Performance based on available data. Missing: ${missingTickers.join(', ')} (${missingPct.toFixed(0)}% of portfolio value)`);
+            } else if (errors.length > 0) {
                 showError(`Unable to fetch: ${errors.join(', ')}`);
             }
 
@@ -2957,20 +2993,25 @@
                 const stockHoldings = holdings.filter(h => h.type === 'stock');
                 const optionHoldings = holdings.filter(h => h.type === 'call' || h.type === 'put');
 
-                // Calculate total portfolio value using 13F values for stocks, calculated premiums for options
-                // These values are accurate as of the reportDate
-                const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
-                let totalOptionPremium = 0;
+                // Compute effective total for tickers with available prices (renormalize weights)
+                let effectiveStockValue = 0;
+                for (const h of stockHoldings) {
+                    if (tickerPrices[h.ticker]?.[date]) effectiveStockValue += h.value;
+                }
+                let effectiveOptionPremium = 0;
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
                     const config = fund().optionConfig[key];
-                    if (config?.calculatedPremium) totalOptionPremium += config.calculatedPremium;
+                    if (tickerPrices[h.ticker]?.[date] && config?.calculatedPremium) {
+                        effectiveOptionPremium += config.calculatedPremium;
+                    }
                 }
-                const totalPortfolioValue = totalStockValue + totalOptionPremium;
+                const effectiveTotal = effectiveStockValue + effectiveOptionPremium;
+                if (effectiveTotal === 0) continue;
 
                 let portfolioReturn = 0;
 
-                // Stock returns (weighted by 13F value)
+                // Stock returns (weighted by 13F value, renormalized to available tickers)
                 for (const h of stockHoldings) {
                     const prices = tickerPrices[h.ticker];
                     if (!prices?.[date]) continue;
@@ -2980,13 +3021,13 @@
 
                     if (prevPrice > 0) {
                         const stockReturn = (currentPrice - prevPrice) / prevPrice;
-                        const weight = h.value / totalPortfolioValue;
+                        const weight = h.value / effectiveTotal;
                         portfolioReturn += stockReturn * weight;
                     }
                     prevPrices[h.ticker] = currentPrice;
                 }
 
-                // Option returns (using Black-Scholes, weighted by calculated premium)
+                // Option returns (using Black-Scholes, weighted by calculated premium, renormalized)
                 for (const h of optionHoldings) {
                     const key = getOptionKey(activeQuarter, h.ticker, h.type, h.shares);
                     const config = fund().optionConfig[key];
@@ -3004,7 +3045,7 @@
 
                     if (prevOptionPrice > 0.01 && config.calculatedPremium) {
                         const optionReturn = (optionPrice - prevOptionPrice) / prevOptionPrice;
-                        const weight = config.calculatedPremium / totalPortfolioValue;
+                        const weight = config.calculatedPremium / effectiveTotal;
                         portfolioReturn += optionReturn * weight;
                     }
 
@@ -3031,7 +3072,7 @@
                 qqqValues.push({ date, value: qqqValue });
             }
 
-            return { portfolioValues, spyValues, qqqValues, tickerPrices };
+            return { portfolioValues, spyValues, qqqValues, tickerPrices, missingTickers };
         }
 
         // Calculate performance using only equity positions (no options)
@@ -3053,8 +3094,12 @@
                 const holdings = getHoldingsData()[activeQuarter].holdings;
                 const stockHoldings = holdings.filter(h => h.type === 'stock');
 
-                // For equities-only, total is just stock values
-                const totalStockValue = stockHoldings.reduce((s, h) => s + h.value, 0);
+                // Renormalize to stocks with available prices
+                let effectiveStockValue = 0;
+                for (const h of stockHoldings) {
+                    if (tickerPrices[h.ticker]?.[date]) effectiveStockValue += h.value;
+                }
+                if (effectiveStockValue === 0) continue;
 
                 let portfolioReturn = 0;
 
@@ -3065,9 +3110,9 @@
                     const currentPrice = prices[date];
                     const prevPrice = prevPrices[h.ticker];
 
-                    if (prevPrice > 0 && totalStockValue > 0) {
+                    if (prevPrice > 0) {
                         const stockReturn = (currentPrice - prevPrice) / prevPrice;
-                        const weight = h.value / totalStockValue;
+                        const weight = h.value / effectiveStockValue;
                         portfolioReturn += stockReturn * weight;
                     }
                     prevPrices[h.ticker] = currentPrice;
@@ -3117,6 +3162,15 @@
                 maxDrawdown = Math.max(maxDrawdown, (peak - p.value) / peak);
             }
 
+            // Annualized Return (CAGR)
+            const startValue = values[0].value;
+            const endValue = values[values.length - 1].value;
+            const calendarDays = (new Date(values[values.length - 1].date) - new Date(values[0].date)) / (1000 * 60 * 60 * 24);
+            const annualizedReturn = calendarDays > 0 ? (Math.pow(endValue / startValue, 365.25 / calendarDays) - 1) * 100 : null;
+
+            // Annualized Volatility
+            const annualizedVol = Math.sqrt(variance) * Math.sqrt(252) * 100;
+
             // Calculate quarterly returns - dynamically build ranges from available quarters
             const quarterRanges = buildQuarterRanges();
 
@@ -3137,7 +3191,7 @@
                 }
             }
 
-            return { totalReturn, ytdReturn, sharpe, maxDrawdown: maxDrawdown * 100, quarterly };
+            return { totalReturn, ytdReturn, sharpe, maxDrawdown: maxDrawdown * 100, annualizedReturn, annualizedVol, quarterly };
         }
 
         // Detect significant moves (15%+ over 2-4 trading days) and attribute to holdings
@@ -3530,6 +3584,22 @@
             md.textContent = `-${m.maxDrawdown.toFixed(1)}%`;
             md.className = 'metric-value negative';
 
+            const ar = document.getElementById('ann-return');
+            if (m.annualizedReturn != null) {
+                ar.textContent = fmt(m.annualizedReturn);
+                ar.className = `metric-value ${m.annualizedReturn >= 0 ? 'positive' : 'negative'}`;
+            } else {
+                ar.textContent = '—';
+                ar.className = 'metric-value';
+            }
+
+            const av = document.getElementById('ann-vol');
+            if (m.annualizedVol != null) {
+                av.textContent = m.annualizedVol.toFixed(1) + '%';
+            } else {
+                av.textContent = '—';
+            }
+
             // Generate quarterly cards with expandable breakdowns
             const quarterlyContainer = document.getElementById('quarterly-metrics');
             const quarters = Object.keys(buildQuarterRanges());
@@ -3773,6 +3843,11 @@
         function showError(msg) {
             document.getElementById('error-container').innerHTML =
                 `<div class="error-message">${msg}</div>`;
+        }
+
+        function showWarning(msg) {
+            document.getElementById('error-container').innerHTML =
+                `<div class="warning-message">${msg}</div>`;
         }
 
         // ============================================
@@ -4068,7 +4143,7 @@
             let label = portfolioMode === 'equities' ? profile().shortName + ' (Equities Only)' : profile().shortName + ' (Full Portfolio)';
             if (rebalanceMode === 'filing') label += ' — Filing Date';
             renderChart(portfolioValues, spyValues, qqqValues, label);
-            updateMetricsUI({ totalReturn: portfolioChange, ytdReturn: null, maxDrawdown: Math.min(0, -portfolioChange), sharpe: null });
+            updateMetricsUI({ totalReturn: portfolioChange, ytdReturn: null, maxDrawdown: Math.min(0, -portfolioChange), sharpe: null, annualizedReturn: null, annualizedVol: null });
 
             // Update constituents grid with live data
             updateConstituentsUI1D(tickerChanges, liveQuotes);
