@@ -1714,9 +1714,46 @@
                     // BE call removed - related to convertible notes, not equity options
                     { ticker: 'STX', name: 'Seagate Technology', shares: 48567, value: 11464726, type: 'stock' }
                 ]
+            },
+            'Q4-2025': {
+                reportDate: '2025-12-31',
+                filedDate: '2026-02-11',
+                periodStart: '2025-10-01',
+                periodEnd: '2025-12-31',
+                holdings: [
+                    { ticker: 'BE', name: 'Bloom Energy Corp', shares: 10076022, value: 875505552, type: 'stock' },
+                    { ticker: 'CRWV', name: 'CoreWeave Inc (Call)', shares: 10814500, value: 774426345, type: 'call' },
+                    { ticker: 'INTC', name: 'Intel Corp (Call)', shares: 20237400, value: 746760060, type: 'call' },
+                    { ticker: 'LITE', name: 'Lumentum Holdings Inc', shares: 1298400, value: 478577256, type: 'stock' },
+                    { ticker: 'CRWV', name: 'CoreWeave Inc', shares: 6098812, value: 436735927, type: 'stock' },
+                    { ticker: 'CORZ', name: 'Core Scientific Inc', shares: 28756478, value: 418694320, type: 'stock' },
+                    { ticker: 'IREN', name: 'IREN Limited', shares: 8700621, value: 328622455, type: 'stock' },
+                    { ticker: 'APLD', name: 'Applied Digital Corp', shares: 11339060, value: 278033751, type: 'stock' },
+                    { ticker: 'SNDK', name: 'SanDisk Corp', shares: 1054200, value: 250245996, type: 'stock' },
+                    { ticker: 'CIFR', name: 'Cipher Mining Inc', shares: 10469093, value: 154523813, type: 'stock' },
+                    { ticker: 'EQT', name: 'EQT Corp', shares: 2482225, value: 133047260, type: 'stock' },
+                    { ticker: 'COHR', name: 'Coherent Corp', shares: 480300, value: 88648971, type: 'stock' },
+                    { ticker: 'SEI', name: 'Solaris Energy Infras Inc', shares: 1866500, value: 85803005, type: 'stock' },
+                    { ticker: 'TSEM', name: 'Tower Semiconductor Ltd', shares: 723004, value: 84895130, type: 'stock' },
+                    { ticker: 'RIOT', name: 'Riot Platforms Inc', shares: 6167700, value: 78144759, type: 'stock' },
+                    { ticker: 'KRC', name: 'Kilroy Realty Corp', shares: 1327700, value: 49616149, type: 'stock' },
+                    { ticker: 'HUT', name: 'Hut 8 Corp', shares: 860200, value: 39517588, type: 'stock' },
+                    { ticker: 'EQT', name: 'EQT Corp (Call)', shares: 700000, value: 37520000, type: 'call' },
+                    { ticker: 'BE', name: 'Bloom Energy Corp (Call)', shares: 408500, value: 35494565, type: 'call' },
+                    { ticker: 'WYFI', name: 'WhiteFiber Inc', shares: 1757600, value: 27770080, type: 'stock' },
+                    { ticker: 'PSIX', name: 'Power Solutions Intl Inc', shares: 432300, value: 24701622, type: 'stock' },
+                    { ticker: 'BTDR', name: 'Bitdeer Technologies Group', shares: 1788000, value: 20043480, type: 'stock' },
+                    { ticker: 'CLSK', name: 'CleanSpark Inc', shares: 1640400, value: 16600848, type: 'stock' },
+                    { ticker: 'BITF', name: 'Bitfarms Ltd', shares: 6897100, value: 16208185, type: 'stock' },
+                    { ticker: 'LBRT', name: 'Liberty Energy Inc', shares: 567200, value: 10470512, type: 'stock' },
+                    { ticker: 'INFY', name: 'Infosys Ltd (Put)', shares: 500000, value: 8910000, type: 'put' },
+                    { ticker: 'BW', name: 'Babcock & Wilcox Enterprises', shares: 1353900, value: 8583726, type: 'stock' },
+                    { ticker: 'PUMP', name: 'ProPetro Holding Corp', shares: 910300, value: 8656953, type: 'stock' },
+                    { ticker: 'INTC', name: 'Intel Corp', shares: 1, value: 37, type: 'stock' }
+                ]
             }
                 },
-                defaultQuarterOrder: ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025'],
+                defaultQuarterOrder: ['Q4-2024', 'Q1-2025', 'Q2-2025', 'Q3-2025', 'Q4-2025'],
                 cusipToTicker: {
                     '573874104': 'MRVL', '92840M102': 'VST', '92535P101': 'VRT',
                     '87425E103': 'TLN', '21037T109': 'CEG', '607828100': 'MOD',
@@ -1729,6 +1766,14 @@
                     '83417Q105': 'SEI', '44267D107': 'HUT', '958102105': 'WDC',
                     '19247G107': 'COHR', 'G1241V102': 'BTDR', '80004C209': 'SNDK',
                     '81211L102': 'STX',
+                    // Q4-2025 new/changed CUSIPs
+                    '038169207': 'APLD', '093712107': 'BE', '17253J106': 'CIFR',
+                    '21874A106': 'CORZ', '21873S108': 'CRWV', '26884L109': 'EQT',
+                    '44812J104': 'HUT', 'Q4982L109': 'IREN', 'M87915274': 'TSEM',
+                    'G11448100': 'BTDR', '80004C200': 'SNDK', '83418M103': 'SEI',
+                    '05614L209': 'BW', '09173B107': 'BITF', '18452B209': 'CLSK',
+                    '456788108': 'INFY', '49427F108': 'KRC', '53115L104': 'LBRT',
+                    '73933G202': 'PSIX', '74347M108': 'PUMP', 'G96115103': 'WYFI',
                 },
                 nameToTicker: {
                     'MARVELL': 'MRVL', 'VISTRA': 'VST', 'VERTIV': 'VRT',
@@ -1742,10 +1787,15 @@
                     'SOLARIS': 'SEI', 'HUT 8': 'HUT', 'WESTERN DIGITAL': 'WDC',
                     'COHERENT': 'COHR', 'BITDEER': 'BTDR', 'SANDISK': 'SNDK',
                     'SEAGATE': 'STX',
+                    // Q4-2025 new names
+                    'BABCOCK': 'BW', 'BITFARMS': 'BITF', 'CLEANSPARK': 'CLSK',
+                    'INFOSYS': 'INFY', 'KILROY': 'KRC', 'LIBERTY ENERGY': 'LBRT',
+                    'POWER SOLUTIONS': 'PSIX', 'PROPETRO': 'PUMP', 'WHITEFIBER': 'WYFI',
                 },
                 defaultIVs: {
                     'INTC': 45, 'SMH': 30, 'NVDA': 50, 'CRWV': 65,
                     'AVGO': 35, 'TSM': 35, 'MU': 50, 'BE': 60,
+                    'EQT': 35, 'INFY': 30,
                 },
             },
             'vara': {
@@ -2090,14 +2140,33 @@
                         if (indexRes.ok) {
                             const indexData = await indexRes.json();
                             const items = indexData.directory?.item || [];
-                            for (const item of items) {
-                                if (item.name?.toLowerCase().includes('infotable') && item.name?.endsWith('.xml')) {
-                                    const xmlRes = await fetch(makeProxy(`${baseUrl}/${item.name}`));
-                                    if (xmlRes.ok) {
-                                        xmlContent = await xmlRes.text();
-                                        break;
-                                    }
+                            // First try files with "infotable" or "13f" in the name
+                            // Then fall back to any XML that isn't primary_doc.xml or index headers
+                            const candidates = items.filter(item => {
+                                if (!item.name?.endsWith('.xml')) return false;
+                                const lower = item.name.toLowerCase();
+                                if (lower === 'primary_doc.xml') return false;
+                                return true;
+                            }).sort((a, b) => {
+                                // Prioritize files with infotable/13f in name
+                                const aScore = (a.name.toLowerCase().includes('infotable') || a.name.toLowerCase().includes('13f')) ? 0 : 1;
+                                const bScore = (b.name.toLowerCase().includes('infotable') || b.name.toLowerCase().includes('13f')) ? 0 : 1;
+                                return aScore - bScore;
+                            });
+                            for (const item of candidates) {
+                                for (const mp of proxies) {
+                                    try {
+                                        const xmlRes = await fetch(mp(`${baseUrl}/${item.name}`));
+                                        if (xmlRes.ok) {
+                                            const text = await xmlRes.text();
+                                            if (text.includes('informationTable') || text.includes('infoTable')) {
+                                                xmlContent = text;
+                                                break;
+                                            }
+                                        }
+                                    } catch (e) { /* try next proxy */ }
                                 }
+                                if (xmlContent) break;
                             }
                         }
                     } catch (e) { /* try next proxy */ }
@@ -2181,7 +2250,7 @@
                         }
                     }
 
-                    const value = parseInt(valueStr.replace(/,/g, ''), 10) * 1000; // Value is in thousands
+                    const value = parseInt(valueStr.replace(/,/g, ''), 10); // Value in full dollars (modern XBRL filings)
 
                     if (!nameOfIssuer || isNaN(value) || isNaN(shares)) return;
 
