@@ -1466,6 +1466,7 @@
                     <button class="range-tab" data-range="1M">1M</button>
                     <button class="range-tab" data-range="3M">3M</button>
                     <button class="range-tab" data-range="6M">6M</button>
+                    <button class="range-tab" data-range="1Y">1Y</button>
                     <button class="range-tab active" data-range="ALL">All</button>
                     <button class="range-tab" data-range="CUSTOM">Custom</button>
                 </div>
@@ -4015,6 +4016,7 @@
                 case '1M': return new Date(now - 30 * 24 * 60 * 60 * 1000);
                 case '3M': return new Date(now - 90 * 24 * 60 * 60 * 1000);
                 case '6M': return new Date(now - 180 * 24 * 60 * 60 * 1000);
+                case '1Y': return new Date(now - 365 * 24 * 60 * 60 * 1000);
                 default: return null;
             }
         }
@@ -4072,7 +4074,7 @@
             updateConstituentsUI(range, tickerPrices);
             updateBigMovesUI(portfolioValues, tickerPrices, range);
 
-            const rangeLabels = { '1D': '1 Day', '1W': '1 Week', '1M': '1 Month', '3M': '3 Months', '6M': '6 Months', 'ALL': 'All Time', 'CUSTOM': 'Custom' };
+            const rangeLabels = { '1D': '1 Day', '1W': '1 Week', '1M': '1 Month', '3M': '3 Months', '6M': '6 Months', '1Y': '1 Year', 'ALL': 'All Time', 'CUSTOM': 'Custom' };
             document.getElementById('range-label').textContent = `(${rangeLabels[range]})`;
         }
 
