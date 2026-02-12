@@ -4855,6 +4855,15 @@
         // Load per-fund state from localStorage
         function loadFundState() {
             fund().optionConfig = loadOptionConfig();
+
+            // Migration: clear holdings stored with old ×1000 value bug
+            const migrationKey = profile().storagePrefix + '-values-fixed-v1';
+            if (!localStorage.getItem(migrationKey)) {
+                localStorage.removeItem(profile().storagePrefix + '-holdings-data');
+                localStorage.removeItem(profile().storagePrefix + '-quarter-order');
+                localStorage.setItem(migrationKey, '1');
+            }
+
             updateHoldingsDataFromStorage();
 
             if (!getQuarterOrder().includes(fund().currentQuarter)) {
